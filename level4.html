@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Level 4 - Radio Frequency Scenario</title>
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+<style>
+  body {
+    margin: 0;
+    font-family: 'Orbitron', sans-serif;
+    background: linear-gradient(135deg, #000428, #004e92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  h1 {
+    color: #fff;
+    margin-bottom: 10px;
+  }
+
+  /* Container for draggable items */
+  #itemsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+
+  /* Style for each item (images) - enlarged by 6% with transform */
+  .item {
+    width: 80px;
+    height: 80px;
+    cursor: grab;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Enlarge by 6% */
+    transform: scale(1.06);
+  }
+  .item img {
+    max-width: 70px;
+    max-height: 70px;
+  }
+
+  /* Groups for dropping items */
+  .group {
+    width: 45%;
+    min-height: 150px;
+    border: 3px dashed #fff;
+    border-radius: 10px;
+    padding: 10px;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    background-color: rgba(255,255,255,0.1);
+    display: flex; /* Make items appear in a line */
+    flex-direction: row; /* Horizontal layout */
+    flex-wrap: wrap; /* Wrap to new line if too many items */
+    gap: 10px; /* Space between items */
+  }
+  .group h2 {
+    color: #fff;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  /* Visual feedback for groups */
+  .group.correct { background-color: #4CAF50; border-color: #2e7d32; }
+  .group.incorrect { background-color: #f44336; border-color: #c62828; }
+
+  /* Buttons styles */
+#checkBtn, #tryAgainBtn {
+  padding: 10px 20px;
+  margin: 10px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+  color: #fff;
+  transition: all 0.2s;
+}
+#checkBtn:hover, #tryAgainBtn:hover {
+  transform: scale(1.05);
+}
+
+/* Levels button styles */
+#levelsBtn {
+  padding: 10px 20px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4CAF50, #81C784);
+  color: #fff;
+  display: none; /* hidden by default */
+  margin-top: 20px;
+}
+#levelsBtn:hover {
+  transform: scale(1.05);
+}
+
+#trivia {
+  margin-top: 20px;
+  color: #fff;
+  max-width: 600px;
+  text-align: center;
+  font-size: 1.2em;
+  display: none;
+}
+
+#buttonsContainer {
+  display: flex;
+  gap: 10px;
+}
+
+/* Canvas background for particles (optional) */
+#particles {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: -1;
+}
+</style>
+</head>
+<body>
+
+<h1>Level 4: Identify Radio Frequency Emitters</h1>
+
+<!-- Draggable items -->
+<div id="itemsContainer"></div>
+
+<!-- Groups for dropping items -->
+<div style="display: flex; justify-content: space-around; width: 100%;">
+  <div id="groupEmit" class="group" ondragover="event.preventDefault()" ondrop="drop(event, 'emit')">
+    <h2>Emits Radiofrequency</h2>
+  </div>
+  <div id="groupNoEmit" class="group" ondragover="event.preventDefault()" ondrop="drop(event, 'noemit')">
+    <h2>Does Not Emit</h2>
+  </div>
+</div>
+
+<!-- Buttons -->
+<div id="buttonsContainer">
+  <button id="checkBtn">Check</button>
+  <button id="tryAgainBtn" style="display:none;">Try Again</button>
+</div>
+
+<!-- Levels Button -->
+<button id="levelsBtn">Levels</button>
+
+<!-- Trivia message -->
+<div id="trivia"></div>
+
+<!-- Optional particles background -->
+<canvas id="particles"></canvas>
+
+<script>
+/* --- Generate Items as Images --- */
+
+const itemsData = [
+  { id: 'item0', name: 'Cell Phone Tower', image: 'https://www.pngarts.com/files/3/Smartphone-Mobile-PNG-Image-Background.png', group: 'emit' },
+  { id: 'item1', name: 'Radio Transmitter', image: 'https://tse4.mm.bing.net/th/id/OIP.O7Co1j7cqk3GOdWB2bpmBgHaHa?pid=Api&P=0&h=220', group: 'emit' },
+  { id: 'item2', name: 'Wi-Fi Router', image: 'https://tse4.mm.bing.net/th/id/OIP.qkm4KjTEIlqSURBSjQinTAHaHa?pid=Api&P=0&h=220', group: 'emit' },
+  { id: 'item3', name: 'Microwave Oven', image: 'https://i5.walmartimages.com/asr/05c1d2b5-bcf1-440e-aa6a-c337e7ab972e.9173301b91bc3ac66532edb150102229.jpeg', group: 'emit' },
+  { id: 'item4', name: 'Glass of Water', image: 'https://tse4.mm.bing.net/th/id/OIP.97AImM9uKjtGU_1cbnbVUgHaIa?pid=Api&P=0&h=220', group: 'noemit' },
+  { id: 'item5', name: 'Plastic Bottle', image: 'https://images.freeimages.com/images/large-previews/620/plastic-bottle-1327399.jpg', group: 'noemit' },
+  { id: 'item6', name: 'Metal Spoon', image: 'https://tse2.mm.bing.net/th/id/OIP.4p4cSOrP4hhaT6CtHRZxtgHaHR?pid=Api&P=0&h=220', group: 'noemit' },
+  { id: 'item7', name: 'Radio Controlled Car', image: 'https://tse2.mm.bing.net/th/id/OIP.xt0i3OOAkAW2lw_ivbjirwHaHa?pid=Api&P=0&h=220', group: 'emit' }
+];
+
+const itemsContainer = document.getElementById('itemsContainer');
+
+// Generate draggable items
+itemsData.forEach((item) => {
+  const div = document.createElement('div');
+  div.className = 'item';
+  div.draggable = true;
+  div.id = item.id;
+  div.setAttribute('data-group', item.group);
+  div.addEventListener('dragstart', dragStart);
+
+  const img = document.createElement('img');
+  img.src = item.image;
+  img.alt = item.name;
+
+  div.appendChild(img);
+  itemsContainer.appendChild(div);
+});
+
+// Drag and Drop handlers
+function dragStart(event) {
+  event.dataTransfer.setData('text/plain', event.target.id);
+}
+
+function drop(event, groupType) {
+  event.preventDefault();
+  const id = event.dataTransfer.getData('text/plain');
+  const itemDiv = document.getElementById(id);
+  // Append the item to the group container
+  event.currentTarget.appendChild(itemDiv);
+  // Store assigned group
+  itemDiv.setAttribute('data-assigned-group', groupType);
+}
+
+// Check correctness
+document.getElementById('checkBtn').addEventListener('click', () => {
+  const allItems = document.querySelectorAll('.item');
+  let correctCount = 0;
+
+  // Loop through all items and check their assigned group
+  allItems.forEach((item) => {
+    const assignedGroup = item.getAttribute('data-assigned-group');
+    const itemId = item.id;
+    // Find the original data object
+    const dataObj = itemsData.find(obj => obj.id === itemId);
+    if (dataObj && assignedGroup === dataObj.group) {
+      correctCount++;
+    }
+  });
+
+  const totalItems = allItems.length;
+  const allCorrect = (correctCount === totalItems);
+
+  // Color groups
+  document.querySelectorAll('.group').forEach(group => {
+    group.classList.remove('correct', 'incorrect');
+    if (allCorrect) {
+      group.classList.add('correct');
+    } else {
+      group.classList.add('incorrect');
+    }
+  });
+
+  if (allCorrect) {
+    document.getElementById('trivia').style.display = 'block';
+    document.getElementById('trivia').innerHTML = `
+      <strong>Trivia:</strong> Radio Frequency waves are used for wireless communication, including cell phones, Wi-Fi, and radio broadcasts. They can transmit information without emitting harmful radiation if properly regulated.
+    `;
+    document.getElementById('checkBtn').disabled = true;
+
+    // Mark level 4 as completed and unlock level 5
+    localStorage.setItem('level4Completed', 'true');
+    localStorage.setItem('level5Unlocked', 'true');
+    updateLevelsButton();
+
+  } else {
+    alert('Some items are misplaced! Try again.');
+  }
+  document.getElementById('tryAgainBtn').style.display = 'inline-block';
+});
+
+// Reset level
+document.getElementById('tryAgainBtn').addEventListener('click', () => {
+  // Move items back to original container
+  itemsData.forEach((item) => {
+    const itemDiv = document.getElementById(item.id);
+    document.getElementById('itemsContainer').appendChild(itemDiv);
+    itemDiv.removeAttribute('data-assigned-group');
+  });
+  // Reset group styles
+  document.querySelectorAll('.group').forEach(group => {
+    group.classList.remove('correct', 'incorrect');
+    group.style.backgroundColor = 'rgba(255,255,255,0.1)';
+    group.style.borderColor = '#fff';
+  });
+  // Reset buttons
+  document.getElementById('checkBtn').disabled = false;
+  document.getElementById('tryAgainBtn').style.display = 'none';
+  // Hide trivia
+  document.getElementById('trivia').style.display = 'none';
+
+  // Reset the levels button appearance
+  updateLevelsButton();
+});
+
+// Particles background code (unchanged)
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+
+let particlesArray;
+const maxParticles = 50;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Particle {
+  constructor() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 2 + 1;
+    this.speedX = (Math.random() - 0.5) * 0.5;
+    this.speedY = (Math.random() - 0.5) * 0.5;
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    if (this.x > canvas.width) this.x = 0;
+    if (this.x < 0) this.x = canvas.width;
+    if (this.y > canvas.height) this.y = 0;
+    if (this.y < 0) this.y = canvas.height;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fill();
+  }
+}
+
+function initParticles() {
+  particlesArray = [];
+  for (let i=0; i<maxParticles; i++) {
+    particlesArray.push(new Particle());
+  }
+}
+
+function handleParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let p of particlesArray) {
+    p.update();
+    p.draw();
+  }
+  // Connect close particles
+  for (let a=0; a<particlesArray.length; a++) {
+    for (let b=a+1; b<particlesArray.length; b++) {
+      const dx = particlesArray[a].x - particlesArray[b].x;
+      const dy = particlesArray[a].y - particlesArray[b].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 100) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255,255,255,${1 - dist/100})`;
+        ctx.lineWidth = 1;
+        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(handleParticles);
+}
+
+initParticles();
+handleParticles();
+
+// --- Additional code to manage the Levels button on load ---
+function updateLevelsButton() {
+  const btn = document.getElementById('levelsBtn');
+  if (localStorage.getItem('level4Completed') === 'true') {
+    btn.style.display = 'inline-block';
+    btn.innerText = 'Levels (Completed)';
+    btn.style.background = 'linear-gradient(135deg, #4CAF50, #81C784)';
+    btn.disabled = true;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+// Set event listener for the button
+document.getElementById('levelsBtn').addEventListener('click', () => {
+  // Replace with your actual levels page URL
+  window.location.href = 'levels.html';
+});
+
+// Run on page load
+window.onload = () => {
+  updateLevelsButton();
+};
+</script>
+
+</body>
+</html>

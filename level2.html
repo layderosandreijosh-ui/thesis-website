@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Level 2 - Electromagnetic Waves Discovery</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    height: 100vh;
+    width: 100vw;
+    font-family: 'Orbitron', sans-serif;
+    overflow: hidden;
+    background: linear-gradient(135deg, #000428, #004e92);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Canvas for particles background */
+  #particles {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+  }
+
+  /* Main container */
+  .game-container {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+    overflow-y: auto;
+  }
+
+  /* Header & info */
+  #header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+  }
+
+  #title {
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 32px;
+  }
+
+  #timer, #stars {
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+  }
+
+  /* Question */
+  #question {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    color: #fff;
+    margin-bottom: 30px;
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  /* Answers container */
+  #answers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 20px;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  /* Style for answer boxes */
+  .answer-box {
+    width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    border: 3px solid transparent;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .answer-box:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: #fff;
+  }
+
+  /* Image inside answer box */
+  .image-box {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .answer-box img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  /* Name label */
+  .name-label {
+    font-size: 14px;
+    color: #fff;
+    text-align: center;
+  }
+
+  /* Feedback overlay */
+  #feedback {
+    position: absolute;
+    top: 10%;
+    width: 80%;
+    max-width: 600px;
+    padding: 30px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 15px;
+    text-align: center;
+    font-size: 24px;
+    color: #fff;
+    display: none;
+    z-index: 5;
+  }
+
+  /* Buttons below answers */
+  #action-buttons {
+    margin-top: 30px;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+  }
+  button {
+    padding: 15px 30px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  button:hover {
+    transform: scale(1.05);
+  }
+
+  /* Centered trivia section styles */
+  #triviaSection {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background:#444;
+    padding:15px;
+    border-radius:10px;
+    max-width:800px;
+    width:90%;
+    display: none;
+    z-index: 10;
+  }
+  #triviaSection h3 {
+    margin-bottom: 10px;
+    color: #fff;
+    text-align: center;
+  }
+  #triviaContent {
+    color:#fff;
+    font-size:1em;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<!-- Particles background -->
+<canvas id="particles"></canvas>
+
+<div class="game-container">
+  <div id="header">
+    <div id="title">Electromagnetic Spectrum</div>
+    <div>
+      <div id="timer">Time: 30</div>
+      <div id="stars">Stars: ★★★</div>
+    </div>
+  </div>
+  <div id="question">Who discovered electromagnetic waves?</div>
+  <div id="answers"></div>
+  <div id="action-buttons" style="margin-top:20px;">
+    <button id="tryAgainBtn" style="display:none;">Try Again</button>
+  </div>
+</div>
+
+<!-- Feedback overlay -->
+<div id="feedback"></div>
+
+<!-- Trivia about the correct answer, centered -->
+<div id="triviaSection">
+  <h3>Did You Know?</h3>
+  <div id="triviaContent"></div>
+</div>
+
+<!-- Return button -->
+<button id="returnBtn" style="position:fixed; bottom:20px; right:20px; padding:15px 25px; background:#333; color:#fff; border:none; border-radius:12px; font-family:'Orbitron', sans-serif; font-size:16px; box-shadow:0 4px 8px rgba(0,0,0,0.3); display:none; z-index:10;">Return to Levels</button>
+
+<!-- Next Level button, hidden initially -->
+<button id="nextLevelBtn" style="position:fixed; bottom:20px; right:20px; padding:15px 25px; background:#007bff; color:#fff; border:none; border-radius:12px; font-family:'Orbitron', sans-serif; font-size:16px; cursor:pointer; display:none; z-index:10;">Next Level</button>
+
+<!-- Background music -->
+<audio id="bg-music" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" autoplay loop></audio>
+
+<script>
+  // Particles background code
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let particlesArray;
+  const maxParticles = 80;
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 2 + 1;
+      this.speedX = (Math.random() - 0.5) * 0.5;
+      this.speedY = (Math.random() - 0.5) * 0.5;
+    }
+    update() {
+      this.x += this.speedX;
+      this.y += this.speedY;
+      if (this.x > canvas.width) this.x = 0;
+      if (this.x < 0) this.x = canvas.width;
+      if (this.y > canvas.height) this.y = 0;
+      if (this.y < 0) this.y = canvas.height;
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fill();
+    }
+  }
+  function initParticles() {
+    particlesArray = [];
+    for (let i=0; i<maxParticles; i++) {
+      particlesArray.push(new Particle());
+    }
+  }
+  function handleParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let p of particlesArray) {
+      p.update();
+      p.draw();
+    }
+    for (let a=0; a<particlesArray.length; a++) {
+      for (let b=a+1; b<particlesArray.length; b++) {
+        const dx = particlesArray[a].x - particlesArray[b].x;
+        const dy = particlesArray[a].y - particlesArray[b].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(255,255,255,${1 - dist/100})`;
+          ctx.lineWidth = 1;
+          ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+          ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(handleParticles);
+  }
+  initParticles();
+  handleParticles();
+
+  // Answers data
+  const answers = [
+    { name: 'Heinrich Hertz', correct: true, image: 'https://static.wixstatic.com/media/3d544d_5ba8c39cfd4346949c160a6a45e7e1ee~mv2.jpg/v1/fill/w_980,h_1225,al_c,q_85,usm_0.66_1.00_0.01,enc_auto/3d544d_5ba8c39cfd4346949c160a6a45e7e1ee~mv2.jpg' },
+    { name: 'James Clerk Maxwell', correct: false, image: 'https://hips.hearstapps.com/hmg-prod/images/gettyimages-517392138.jpg?resize=1200:*' },
+    { name: 'Guglielmo Marconi', correct: false, image: 'https://tse2.mm.bing.net/th/id/OIP.D_VYNgJALXBBHfsfX1Fw3QAAAA?pid=Api&P=0&h=220' },
+    { name: 'Albert Einstein', correct: false, image: 'https://upload.wikimedia.org/wikipedia/commons/d/d3/Albert_Einstein_Head.jpg' }
+  ];
+
+  const answersContainer = document.getElementById('answers');
+  const feedbackDiv = document.getElementById('feedback');
+  const nextLevelBtn = document.getElementById('nextLevelBtn');
+  const tryAgainBtn = document.getElementById('tryAgainBtn');
+  const returnBtn = document.getElementById('returnBtn');
+  const triviaSection = document.getElementById('triviaSection');
+  const triviaContent = document.getElementById('triviaContent');
+
+  function loadAnswers() {
+    answersContainer.innerHTML = '';
+    answers.forEach((ans) => {
+      const div = document.createElement('div');
+      div.className = 'answer-box';
+
+      const imageBox = document.createElement('div');
+      imageBox.className = 'image-box';
+
+      const img = document.createElement('img');
+      img.src = ans.image;
+      img.alt = ans.name;
+
+      imageBox.appendChild(img);
+
+      const nameLabel = document.createElement('div');
+      nameLabel.className = 'name-label';
+      nameLabel.textContent = ans.name;
+
+      div.appendChild(imageBox);
+      div.appendChild(nameLabel);
+
+      div.dataset.correct = ans.correct;
+      div.onclick = handleAnswerClick;
+
+      answersContainer.appendChild(div);
+    });
+  }
+
+  function handleAnswerClick(e) {
+    const isCorrect = e.currentTarget.dataset.correct === 'true';
+
+    if (isCorrect) {
+      document.body.style.backgroundColor = 'green';
+      feedbackDiv.style.display = 'block';
+      feedbackDiv.innerHTML = 'Correct! Heinrich Hertz discovered electromagnetic waves.';
+      nextLevelBtn.style.display = 'block'; // show Next Level button
+      tryAgainBtn.style.display = 'none';
+
+      // Show trivia about the correct answer
+      triviaSection.style.display = 'block';
+      triviaContent.innerHTML = "Heinrich Hertz was the first to conclusively prove the existence of electromagnetic waves, confirming Maxwell's theories. His work laid the foundation for wireless communication technologies.";
+      
+      // Disable answers
+      document.querySelectorAll('.answer-box').forEach(div => {
+        div.style.pointerEvents = 'none';
+        if (div.dataset.correct === 'true') {
+          div.style.borderColor = 'green';
+        }
+      });
+      
+    } else {
+      // Wrong answer feedback
+      document.querySelectorAll('.answer-box').forEach(div => {
+        if (div.dataset.correct === 'true') {
+          div.style.borderColor = 'green';
+        } else {
+          div.style.borderColor = 'red';
+        }
+      });
+      feedbackDiv.style.display = 'block';
+      feedbackDiv.innerHTML = 'Wrong! Try again.';
+      
+      // Hide trivia if wrong
+      triviaSection.style.display = 'none';
+    }
+  }
+
+  // Next Level button handler
+  document.getElementById('nextLevelBtn').onclick = () => {
+    window.location.href = 'level3.html'; // Redirect to level 3
+  };
+
+  document.getElementById('tryAgainBtn').onclick = () => {
+    resetAnswers();
+  };
+  document.getElementById('returnBtn').onclick = () => {
+    window.location.href = 'levels.html';
+  };
+
+  function resetAnswers() {
+    document.body.style.backgroundColor = '';
+    feedbackDiv.style.display = 'none';
+    nextLevelBtn.style.display = 'none';
+    tryAgainBtn.style.display = 'inline-block'; // show try again button
+    // hide trivia
+    triviaSection.style.display = 'none';
+    loadAnswers();
+  }
+
+  // Initialize answers
+  loadAnswers();
+</script>
+</body>
+</html>

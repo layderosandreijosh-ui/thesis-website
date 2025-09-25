@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ray Reflection Puzzle - Drag Mirrors & Level Complete</title>
+<style>
+  body {
+    margin: 0;
+    background-color: #222; /* Background color for the page */
+    font-family: Arial, sans-serif;
+  }
+  canvas {
+    display: block;
+    margin: 10px auto;
+    background: linear-gradient(to bottom, #87ceeb, #ffffff); /* Sky gradient background */
+    border: 2px solid #333;
+  }
+  #status {
+    text-align: center;
+    font-size: 24px;
+    color: green;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="900" height="700"></canvas>
+<div id="status">Aim the mirrors to hit the target!</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const source = { x: 50, y: 650 };
+const target = { x: 850, y: 50 };
+let levelCleared = false;
+
+// Initialize mirrors
+let mirrors = [
+  { x: 450, y: 350, length: 150, angle: Math.PI / 4 },
+  { x: 600, y: 300, length: 150, angle: -Math.PI / 6 },
+];
+
+const initialMirrors = JSON.parse(JSON.stringify(mirrors));
+
+let dragMirrorIndex = null;
+let dragOffset = { x: 0, y: 0 };
+
+function drawSource() {
+  ctx.fillStyle = 'blue';
+  ctx.beginPath();
+  ctx.arc(source.x, source.y, 8, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawTarget() {
+  ctx.fillStyle = 'red';
+  ctx.beginPath();
+  ctx.arc(target.x, target.y, 10, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawMirrors() {
+  mirrors.forEach(m => {
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.angle);
+    ctx.fillStyle = 'brown';
+    ctx.fillRect(-m.length / 2, -5, m.length, 10);
+    ctx.restore();
+  });
+}
+
+function getMirrorEndpoints(m) {
+  const dx = Math.cos(m.angle) * m.length / 2;
+  const dy = Math.sin(m.angle) * m.length / 2;
+  return {
+    start: { x: m.x - dx, y: m.y - dy },
+    end: { x: m.x + dx, y: m.y + dy }
+  };
+}
+
+function drawRays() {
+  if (levelCleared) return; // Don't draw rays if level is cleared
+  let currentPoint = { x: source.x, y: source.y };
+  let currentDir = { x: 1, y: 0 };
+  let hitTarget = false; // Local variable to track hitting the target
+
+  const maxReflections = 5;
+
+  for (let i = 0; i < maxReflections; i++) {
+    let closestDist = Infinity;
+    let closestPoint = null;
+    let closestMirror = null;
+    let normalAtHit = null;
+
+    // Find closest intersection with mirrors
+    for (let m of mirrors) {
+      const endpoint = getMirrorEndpoints(m);
+      const lineStart = endpoint.start;
+      const lineEnd = endpoint.end;
+
+      const intersect = getLineIntersection(currentPoint, currentDir, lineStart, lineEnd);
+      if (intersect && intersect.t > 0 && intersect.t < closestDist) {
+        closestDist = intersect.t;
+        closestPoint = { x: intersect.x, y: intersect.y };
+        closestMirror = m;
+
+        const mirrorDir = {
+          x: lineEnd.x - lineStart.x,
+          y: lineEnd.y - lineStart.y
+        };
+        const len = Math.hypot(mirrorDir.x, mirrorDir.y);
+        normalAtHit = {
+          x: -mirrorDir.y / len,
+          y: mirrorDir.x / len
+        };
+        const dot = normalAtHit.x * currentDir.x + normalAtHit.y * currentDir.y;
+        if (dot > 0) {
+          normalAtHit = { x: -normalAtHit.x, y: -normalAtHit.y };
+        }
+      }
+    }
+
+    // No intersection, draw to edge of canvas
+    if (closestPoint) {
+      ctx.strokeStyle = 'orange';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(currentPoint.x, currentPoint.y);
+      ctx.lineTo(closestPoint.x, closestPoint.y);
+      ctx.stroke();
+
+      // *** ADDITION: Check if the intersection point hits the red target ***
+      if (Math.hypot(closestPoint.x - target.x, closestPoint.y - target.y) < 15) {
+        hitTarget = true; // Mark that the target has been hit
+        ctx.strokeStyle = 'purple'; // Change line color to indicate hit
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(closestPoint.x, closestPoint.y);
+        ctx.lineTo(target.x, target.y);
+        ctx.stroke();
+        break; // Stop tracing after hitting the target
+      }
+      // *** END ADDITION ***
+
+      // Draw normal at hit point (optional visual)
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(closestPoint.x - normalAtHit.x * 20, closestPoint.y - normalAtHit.y * 20);
+      ctx.lineTo(closestPoint.x + normalAtHit.x * 20, closestPoint.y + normalAtHit.y * 20);
+      ctx.stroke();
+
+      // Reflect the ray
+      const incidentVec = currentDir;
+      const dot = incidentVec.x * normalAtHit.x + incidentVec.y * normalAtHit.y;
+      const reflectedVec = {
+        x: incidentVec.x - 2 * dot * normalAtHit.x,
+        y: incidentVec.y - 2 * dot * normalAtHit.y
+      };
+      const mag = Math.hypot(reflectedVec.x, reflectedVec.y);
+      currentDir = { x: reflectedVec.x / mag, y: reflectedVec.y / mag };
+
+      // Move current point slightly past hit point
+      currentPoint = {
+        x: closestPoint.x + currentDir.x * 0.1,
+        y: closestPoint.y + currentDir.y * 0.1
+      };
+    } else {
+      // No intersection, draw to canvas edge
+      ctx.strokeStyle = 'orange';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(currentPoint.x, currentPoint.y);
+      ctx.lineTo(currentPoint.x + currentDir.x * 1000, currentPoint.y + currentDir.y * 1000);
+      ctx.stroke();
+      break;
+    }
+  }
+
+  // Show message if target is hit
+  const statusDiv = document.getElementById('status');
+  if (hitTarget) {
+    statusDiv.textContent = 'Level Cleared! 🎉';
+    statusDiv.style.color = 'green';
+    levelCleared = true; // Set global flag to stop further drawing
+  } else {
+    statusDiv.textContent = 'Aim the mirrors to hit the target!';
+    statusDiv.style.color = 'black';
+  }
+}
+
+function getLineIntersection(p, d, a, b) {
+  const v1 = { x: a.x - p.x, y: a.y - p.y };
+  const v2 = { x: b.x - a.x, y: b.y - a.y };
+  const v3 = { x: -d.y, y: d.x };
+  const dot = v2.x * v3.x + v2.y * v3.y;
+  if (Math.abs(dot) < 0.0001) return null;
+  const t = (v2.x * v1.y - v2.y * v1.x) / dot;
+  if (t < 0) return null;
+  return { x: p.x + d.x * t, y: p.y + d.y * t, t: t };
+}
+
+// Mouse events for dragging mirrors
+canvas.addEventListener('mousedown', (e) => {
+  if (levelCleared) return; // Don't allow dragging after level is cleared
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  for (let i = 0; i < mirrors.length; i++) {
+    const m = mirrors[i];
+    const endpoints = getMirrorEndpoints(m);
+    if (isPointNearLine({ x: mx, y: my }, endpoints.start, endpoints.end, 10)) {
+      dragMirrorIndex = i;
+      dragOffset.x = mx - m.x;
+      dragOffset.y = my - m.y;
+      break;
+    }
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  dragMirrorIndex = null;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (dragMirrorIndex !== null && !levelCleared) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    mirrors[dragMirrorIndex].x = mx - dragOffset.x;
+    mirrors[dragMirrorIndex].y = my - dragOffset.y;
+    draw();
+  }
+});
+
+function isPointNearLine(pt, start, end, threshold) {
+  const dist = getDistanceToLine(pt, start, end);
+  return dist < threshold;
+}
+function getDistanceToLine(pt, start, end) {
+  const A = pt.x - start.x;
+  const B = pt.y - start.y;
+  const C = end.x - start.x;
+  const D = end.y - start.y;
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  const param = lenSq !== 0 ? dot / lenSq : -1;
+  let xx, yy;
+  if (param < 0) {
+    xx = start.x;
+    yy = start.y;
+  } else if (param > 1) {
+    xx = end.x;
+    yy = end.y;
+  } else {
+    xx = start.x + param * C;
+    yy = start.y + param * D;
+  }
+  return Math.hypot(pt.x - xx, pt.y - yy);
+}
+
+// Reset level
+function resetLevel() {
+  mirrors = JSON.parse(JSON.stringify(initialMirrors));
+  levelCleared = false;
+  document.getElementById('status').textContent = 'Aim the mirrors to hit the target!';
+  document.getElementById('status').style.color = 'black';
+  draw();
+}
+
+// Initial draw
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawSource();
+  drawTarget();
+  drawMirrors();
+  drawRays();
+}
+
+// Call draw once at start
+draw();
+
+</script>
+</body>
+</html>

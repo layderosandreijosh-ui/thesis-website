@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Level 3 - Reflection Question</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #222;
+    color: #fff;
+    margin: 0;
+    padding: 20px;
+    position: relative;
+  }
+  h2 {
+    text-align: center;
+  }
+  .question {
+    margin-top: 30px;
+    font-size: 1.2em;
+    text-align: center;
+  }
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .choice {
+    background: #444;
+    margin: 10px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    min-width: 150px;
+    text-align: center;
+    transition: background 0.3s, transform 0.3s;
+  }
+  .choice:hover {
+    background: #666;
+    transform: scale(1.05);
+  }
+  #graphicContainer {
+    margin-top: 30px;
+    text-align: center;
+  }
+  canvas {
+    background: #000;
+    border: 2px solid #fff;
+  }
+  #checkBtn {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    font-size: 1em;
+    border: none;
+    border-radius: 5px;
+    background: #0a84ff;
+    color: #fff;
+    cursor: pointer;
+  }
+  #result {
+    text-align: center;
+    font-size: 1.2em;
+    margin-top: 10px;
+  }
+  /* Trivia section styles */
+  #triviaSection {
+    margin-top: 30px;
+    background: #333;
+    padding: 15px;
+    border-radius: 8px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    display: none;
+  }
+  #triviaSection h3 {
+    margin-top: 0;
+    text-align: center;
+  }
+  #triviaContent {
+    margin-top: 10px;
+    font-size: 1em;
+  }
+  /* Buttons for navigation */
+  #topLeftBtn, #topRightBtn {
+    position: fixed;
+    top: 10px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    z-index: 1000;
+  }
+  #topLeftBtn {
+    left: 10px;
+    background-color: #555;
+    color: #fff;
+  }
+  #topRightBtn {
+    right: 10px;
+    background-color: #555;
+    color: #fff;
+  }
+  /* Next Level Button Style */
+  #nextLevelBtn {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    display: none; /* Hidden until level is cleared */
+    padding: 10px 20px;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    z-index: 1000;
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation Buttons -->
+<button id="topLeftBtn">Levels</button>
+<button id="topRightBtn" style="display:none;">Next Level</button>
+
+<h2>What is reflection in terms of light?</h2>
+<div class="question">
+  Select the correct explanation:
+</div>
+<div class="choices">
+  <div class="choice" data-choice="absorbing">Absorbing</div>
+  <div class="choice" data-choice="bouncing">Bouncing</div>
+  <div class="choice" data-choice="bending">Bending</div>
+  <div class="choice" data-choice="splitting">Splitting</div>
+</div>
+
+<button id="checkBtn" disabled>Check Answer</button>
+<div id="result"></div>
+
+<!-- Trivia Section -->
+<div id="triviaSection">
+  <h3>Trivia about Reflection</h3>
+  <div id="triviaContent">
+    Reflection occurs when light bounces off surfaces like mirrors, water, or smooth objects. It follows the law of reflection: the angle of incidence equals the angle of reflection. Reflection is used in various optical devices, periscopes, and even in designing solar panels.
+  </div>
+</div>
+
+<div id="graphicContainer">
+  <canvas id="reflectionCanvas" width="600" height="400"></canvas>
+</div>
+
+<!-- Next Level Button -->
+<button id="nextLevelBtn">Next Level</button>
+
+<script>
+const choices = document.querySelectorAll('.choice');
+const canvas = document.getElementById('reflectionCanvas');
+const ctx = canvas.getContext('2d');
+const checkBtn = document.getElementById('checkBtn');
+const resultDiv = document.getElementById('result');
+const nextLevelBtn = document.getElementById('nextLevelBtn');
+const topLeftBtn = document.getElementById('topLeftBtn');
+const topRightBtn = document.getElementById('topRightBtn');
+
+let selectedChoice = null;
+let animationId = null;
+
+// Load progress from localStorage or initialize
+let levelProgress = {
+  level3Completed: false,
+  level4Unlocked: false
+};
+const savedProgress = localStorage.getItem('levelProgress');
+if (savedProgress) {
+  levelProgress = JSON.parse(savedProgress);
+}
+
+// Update UI based on progress
+if (levelProgress.level3Completed) {
+  nextLevelBtn.style.display = 'block';
+}
+if (levelProgress.level4Unlocked) {
+  // Could show unlocked indicator if needed
+}
+
+// Navigation button events
+topLeftBtn.addEventListener('click', () => {
+  levelProgress.level3Completed = true;
+  levelProgress.level4Unlocked = true;
+  localStorage.setItem('levelProgress', JSON.stringify(levelProgress));
+  window.location.href = 'levels.html';
+});
+topRightBtn.addEventListener('click', () => {
+  window.location.href = 'level4.html';
+});
+if (levelProgress.level3Completed) {
+  nextLevelBtn.style.display = 'block';
+}
+nextLevelBtn.addEventListener('click', () => {
+  window.location.href = 'level4.html';
+});
+
+// Choice selection
+choices.forEach(choice => {
+  choice.addEventListener('click', () => {
+    choices.forEach(c => c.style.border = '');
+    choice.style.border = '2px solid #0a84ff';
+    selectedChoice = choice.getAttribute('data-choice');
+    drawGraphic(selectedChoice);
+    checkBtn.disabled = false;
+    resultDiv.innerHTML = '';
+    // Hide trivia when new choice selected
+    document.getElementById('triviaSection').style.display = 'none';
+  });
+});
+
+// Check answer event
+document.getElementById('checkBtn').addEventListener('click', () => {
+  if (selectedChoice === 'bouncing') {
+    resultDiv.innerHTML = 'Correct! Reflection is bouncing.';
+    // Show the trivia section when correct
+    document.getElementById('triviaSection').style.display = 'block';
+    // Show the Next Level button
+    nextLevelBtn.style.display = 'block';
+  } else {
+    resultDiv.innerHTML = 'Incorrect. Try again.';
+    // Hide trivia if wrong
+    document.getElementById('triviaSection').style.display = 'none';
+  }
+});
+
+// Clear Canvas
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (animationId) cancelAnimationFrame(animationId);
+}
+
+// Draw graphics with animation
+function drawGraphic(choice) {
+  clearCanvas();
+  if (choice === 'absorbing') {
+    animateAbsorbing();
+  } else if (choice === 'bouncing') {
+    animateBouncing();
+  } else if (choice === 'bending') {
+    animateBending();
+  } else if (choice === 'splitting') {
+    animateSplitting();
+  }
+}
+
+// Animation functions
+function animateAbsorbing() {
+  let progress = 0;
+  function animate() {
+    clearCanvas();
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.fillText('Light is absorbed', 250, 50);
+
+    ctx.strokeStyle = 'yellow';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(100 + progress, 200);
+    ctx.lineTo(300, 200);
+    ctx.stroke();
+
+    ctx.fillStyle = 'orange';
+    ctx.fillRect(300, 185, 10, 30); // object
+    ctx.fillStyle = 'black';
+    ctx.font = '14px Arial';
+    ctx.fillText('Absorbed', 310, 200);
+
+    progress += 2;
+    if (progress <= 200) {
+      animationId = requestAnimationFrame(animate);
+    }
+  }
+  animate();
+}
+
+function animateBouncing() {
+  const incidentStart = {x: 150, y: 200};
+  const collisionPoint = {x: 300, y: 150};
+  const returnEnd = {x: 150, y: 200};
+
+  let phase = 0;
+  let state = 'approach'; // 'approach', 'pause', 'retreat'
+
+  function animate() {
+    clearCanvas();
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.fillText('Light is reflected (bounced)', 180, 50);
+
+    ctx.strokeStyle = 'blue';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(300, 100);
+    ctx.lineTo(300, 300);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+
+    if (state === 'approach') {
+      ctx.beginPath();
+      ctx.moveTo(incidentStart.x, incidentStart.y);
+      ctx.lineTo(
+        incidentStart.x + (collisionPoint.x - incidentStart.x) * phase,
+        incidentStart.y + (collisionPoint.y - incidentStart.y) * phase
+      );
+      ctx.stroke();
+
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(collisionPoint.x, collisionPoint.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      phase += 0.02;
+      if (phase >= 1) {
+        phase = 0;
+        state = 'pause';
+        setTimeout(() => {
+          state = 'retreat';
+        }, 500);
+      }
+    } else if (state === 'pause') {
+      ctx.beginPath();
+      ctx.moveTo(incidentStart.x, incidentStart.y);
+      ctx.lineTo(collisionPoint.x, collisionPoint.y);
+      ctx.stroke();
+
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(collisionPoint.x, collisionPoint.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (state === 'retreat') {
+      ctx.beginPath();
+      ctx.moveTo(collisionPoint.x, collisionPoint.y);
+      ctx.lineTo(
+        collisionPoint.x + (returnEnd.x - collisionPoint.x) * phase,
+        collisionPoint.y + (returnEnd.y - collisionPoint.y) * phase
+      );
+      ctx.stroke();
+
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(collisionPoint.x, collisionPoint.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      phase += 0.02;
+      if (phase >= 1) {
+        cancelAnimationFrame(animationId);
+        return;
+      }
+    }
+
+    animationId = requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function animateBending() {
+  let progress = 0;
+  function animate() {
+    clearCanvas();
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.fillText('Light bends', 280, 50);
+
+    ctx.strokeStyle = 'yellow';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(150, 200);
+    ctx.lineTo(150 + (250 - 150) * progress, 200 - (50 * progress));
+    ctx.lineTo(350, 200);
+    ctx.stroke();
+
+    progress += 0.02;
+    if (progress <= 1) {
+      animationId = requestAnimationFrame(animate);
+    }
+  }
+  animate();
+}
+
+function animateSplitting() {
+  let progress = 0;
+  function animate() {
+    clearCanvas();
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.fillText('Light splits into multiple rays', 160, 50);
+
+    ctx.strokeStyle = 'yellow';
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(150, 200);
+    ctx.lineTo(150 + (250 - 150) * progress, 200 - 50 * progress);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(150, 200);
+    ctx.lineTo(150 + (250 - 150) * progress, 200 + 50 * progress);
+    ctx.stroke();
+
+    progress += 0.02;
+    if (progress <= 1) {
+      animationId = requestAnimationFrame(animate);
+    }
+  }
+  animate();
+}
+</script>
+</body>
+</html>

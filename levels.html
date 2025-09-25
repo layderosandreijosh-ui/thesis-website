@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Levels - SpecQuest</title>
+<!-- Optional Google font for style -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+<style>
+  * { margin:0; padding:0; box-sizing: border-box; }
+  body {
+    height: 100vh; width: 100vw;
+    font-family: 'Orbitron', sans-serif;
+    background: linear-gradient(135deg, #000428, #004e92);
+    display: flex; flex-direction: column; align-items: center; padding: 20px;
+    position: relative;
+  }
+  #homeBtn {
+    position: absolute; top: 20px; left: 20px;
+    padding: 10px 15px; border: none; border-radius: 8px;
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #fff; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size:14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+  #homeBtn:hover { transform: scale(1.05); }
+  .levels-container {
+    display: grid; grid-template-columns: repeat(10, 50px); gap: 10px; margin-top: 50px;
+  }
+  .level-btn {
+    width: 50px; height: 50px; border: none; border-radius: 8px;
+    font-family: 'Orbitron', sans-serif; font-size:14px;
+    cursor: pointer; position: relative; transition: all 0.3s;
+  }
+  /* Status styles */
+  .locked { background: #333; cursor: not-allowed; }
+  .unlocked { background: linear-gradient(135deg, #f7971e, #ffd200); }
+  .completed { background: linear-gradient(135deg, #4CAF50, #81C784); }
+  /* Checkmark for completed */
+  .completed::after {
+    content: '✔';
+    position: absolute; top: 5px; right: 8px; font-size:14px; color:#fff;
+  }
+  /* Hover effect for unlocked levels */
+  .unlocked:hover { box-shadow: 0 0 10px #fff; transform: scale(1.1); }
+</style>
+</head>
+<body>
+
+<!-- Home Button -->
+<button id="homeBtn">Home</button>
+
+<!-- Levels grid -->
+<div class="levels-container" id="levelsContainer"></div>
+
+<script>
+const maxLevel = 60; // limit to 60 for demo
+let completedLevels = JSON.parse(localStorage.getItem('completedLevels')) || [];
+const container = document.getElementById('levelsContainer');
+
+// Generate level buttons
+for (let i=1; i<=maxLevel; i++) {
+  const btn = document.createElement('button');
+  btn.className = 'level-btn';
+
+  if (completedLevels.includes(i)) {
+    btn.classList.add('completed');
+  } else if (i === 1 || completedLevels.includes(i-1)) {
+    // First level or next after completed is unlocked
+    btn.classList.add('unlocked');
+  } else {
+    btn.classList.add('locked');
+    btn.disabled = true;
+  }
+
+  btn.textContent = i;
+
+  // Redirect to your level pages
+  btn.addEventListener('click', () => {
+    window.location.href = `level${i}.html`;
+  });
+
+  container.appendChild(btn);
+}
+
+// Home button redirects to index or main menu
+document.getElementById('homeBtn').addEventListener('click', () => {
+  window.location.href = 'index.html'; // Adjust if needed
+});
+
+// Function to mark a level as completed
+function markLevelCompleted(levelNumber) {
+  if (!completedLevels.includes(levelNumber)) {
+    completedLevels.push(levelNumber);
+    localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+    // Unlock next level
+    const nextLevel = levelNumber + 1;
+    if (nextLevel <= maxLevel) {
+      const btn = Array.from(document.querySelectorAll('.level-btn'))[nextLevel - 1];
+      if (btn.classList.contains('locked')) {
+        btn.classList.remove('locked');
+        btn.classList.add('unlocked');
+        btn.disabled = false;
+      }
+    }
+    // Mark current level as completed visually
+    const btns = document.querySelectorAll('.level-btn');
+    btns.forEach(b => {
+      if (parseInt(b.textContent) === levelNumber) {
+        b.classList.remove('unlocked', 'locked');
+        b.classList.add('completed');
+        b.innerHTML = levelNumber + '✔';
+      }
+    });
+  }
+}
+
+// -- Optional: call this function in your level pages after completion
+// Example: in level4.html after finishing, call
+// <script>markLevelCompleted(4);</script>
+</script>
+</body>
+</html>

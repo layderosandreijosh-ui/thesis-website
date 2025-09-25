@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SpecQuest - Home</title>
+
+<!-- Google Fonts for custom fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    overflow: hidden;
+    font-family: 'Roboto Slab', serif;
+    height: 100vh;
+    width: 100%;
+    background-color: #000; /* Space-like background */
+    position: relative;
+  }
+
+  /* Particle Canvas */
+  #particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  /* Container for all content to be above particles */
+  .content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 50px 20px;
+  }
+
+  /* Title container with tiles */
+  .title {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 50px;
+  }
+
+  /* Each letter inside a tile */
+  .tile {
+    margin: 5px;
+    padding: 15px 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 65px;
+    font-weight: bold;
+    background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff);
+    background-size: 600% 600%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,255,255,0.5);
+    transition: all 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+  }
+
+  /* Optional: add a glow effect when clicked (active) */
+  .tile.active {
+    box-shadow: 0 0 20px #ffff00, inset 0 0 10px #ffff00;
+    border-radius: 12px;
+    transform: scale(1.1);
+    transition: all 0.3s ease;
+  }
+
+  /* Subtitle styling */
+  .subtitle {
+    font-family: 'Fredoka One', cursive; /* Distinct font style */
+    font-size: 24px;
+    color: #ffffff;
+    text-align: center;
+    margin-top: 20px;
+    max-width: 90%;
+    padding: 0 10px;
+  }
+
+  /* Play button styling */
+  .play-button {
+    margin-top: 40px;
+    padding: 20px 50px;
+    font-size: 24px;
+    font-family: 'Roboto Slab', serif;
+    background-color: #00ffff;
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 0 15px #00ffff, inset 0 0 10px #000;
+    transition: all 0.3s ease;
+  }
+
+  .play-button:hover {
+    background-color: #ffcc00;
+    color: #000;
+    box-shadow: 0 0 25px #ffcc00, inset 0 0 15px #000;
+    transform: scale(1.05);
+  }
+
+  /* Responsive adjustments */
+  @media(max-width: 768px){
+    .tile {
+      font-size: 50px;
+      padding: 10px 15px;
+    }
+    .play-button {
+      padding: 15px 30px;
+      font-size: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Canvas for particles -->
+<canvas id="particles"></canvas>
+
+<!-- Main Content -->
+<div class="content">
+  <!-- Title with each letter inside a tile -->
+  <div class="title" id="gameTitle">
+    <!-- Letters will be generated via JavaScript -->
+  </div>
+
+  <!-- Subtitle -->
+  <div class="subtitle">
+    TRANSFORMING SCIENCE EDUCATION THROUGH GAMIFICATION
+  </div>
+
+  <!-- Play Button -->
+  <button class="play-button" onclick="location.href='levels.html'">Play</button>
+</div>
+
+<!-- JavaScript for particles and dynamic title -->
+<script>
+  // Particle background
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+
+  let particlesArray;
+
+  const resizeCanvas = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  };
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 2 + 1;
+      this.speedX = (Math.random() - 0.5) * 0.5;
+      this.speedY = (Math.random() - 0.5) * 0.5;
+      this.color = 'rgba(255,255,255,0.3)';
+    }
+
+    update() {
+      this.x += this.speedX;
+      this.y += this.speedY;
+      if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+      if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+    }
+
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+  }
+
+  const initParticles = () => {
+    particlesArray = [];
+    for (let i=0; i<150; i++) {
+      particlesArray.push(new Particle());
+    }
+  };
+
+  const animateParticles = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let particle of particlesArray) {
+      particle.update();
+      particle.draw();
+    }
+    // Connect close particles
+    for (let a=0; a<particlesArray.length; a++) {
+      for (let b=a+1; b<particlesArray.length; b++) {
+        const dx = particlesArray[a].x - particlesArray[b].x;
+        const dy = particlesArray[a].y - particlesArray[b].y;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        if (distance < 100) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+          ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(animateParticles);
+  };
+
+  initParticles();
+  animateParticles();
+
+  // Generate title with each letter as a tile
+  const titleText = "SpecQuest";
+  const titleContainer = document.getElementById('gameTitle');
+
+  for (let letter of titleText) {
+    const span = document.createElement('div');
+    span.className = 'tile';
+    span.textContent = letter;
+    span.onclick = () => {
+      // Toggle glow effect on click
+      span.classList.toggle('active');
+    };
+    titleContainer.appendChild(span);
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Level 1 - Electromagnetic Spectrum</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet" />
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    height: 100vh;
+    width: 100vw;
+    font-family: 'Orbitron', sans-serif;
+    overflow: hidden;
+    background: linear-gradient(135deg, #000428, #004e92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+  }
+
+  /* Canvas for particles background */
+  #particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  /* Game container */
+  .game-container {
+    position: relative;
+    z-index: 2;
+    width: 95%;
+    max-width: 1200px;
+    min-height: 600px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Header & Timer + Score */
+  #header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  #title {
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+  }
+
+  #timer, #stars {
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+  }
+
+  /* Buttons container */
+  #buttons {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    padding: 12px 24px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  button:hover {
+    transform: scale(1.05);
+  }
+
+  /* Maximize space for tiles container */
+  #tiles-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  /* Container for each tile + number */
+  .tile-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: grab;
+    user-select: none;
+    width: 160px;
+  }
+
+  /* Number label above each tile */
+  .tile-number {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    color: #fff;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+
+  /* Tile style, larger size */
+  .tile {
+    padding: 25px 35px;
+    border-radius: 15px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 20px;
+    min-width: 150px;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    transition: background-color 0.3s, transform 0.2s;
+  }
+
+  /* Colors for tiles (distinct) */
+  .tile:nth-child(1) { background-color: #FF5733; }
+  .tile:nth-child(2) { background-color: #FF8D33; }
+  .tile:nth-child(3) { background-color: #FFC300; }
+  .tile:nth-child(4) { background-color: #DAF7A6; }
+  .tile:nth-child(5) { background-color: #33FF57; }
+  .tile:nth-child(6) { background-color: #33FFF6; }
+  .tile:nth-child(7) { background-color: #3380FF; }
+  .tile:nth-child(8) { background-color: #8C33FF; }
+
+  /* Feedback overlay */
+  #feedback {
+    position: absolute;
+    top: 10%;
+    width: 80%;
+    max-width: 600px;
+    padding: 20px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 15px;
+    text-align: center;
+    font-size: 20px;
+    color: #fff;
+    display: none;
+    z-index: 5;
+  }
+
+  /* Stars display */
+  #stars {
+    margin-top: 10px;
+    font-size: 24px;
+    color: #ffd700; /* gold */
+  }
+
+  /* Trivia section styles - added */
+  #triviaSection {
+    margin-top: 20px;
+    background: #444;
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 800px;
+    width: 90%;
+    display: none; /* hidden initially */
+  }
+
+  #triviaSection h3 {
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  #triviaContent {
+    font-size: 1em;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<!-- Particles background -->
+<canvas id="particles"></canvas>
+
+<div class="game-container">
+  <div id="header">
+    <div id="title">Electromagnetic Spectrum</div>
+    <div>
+      <div id="timer">Time: 30</div>
+      <div id="stars">Stars: ★★★</div>
+    </div>
+  </div>
+  <div id="instructions" style="color:#fff; margin-bottom:10px;">Order electromagnetic spectrum (coldest to hottest)</div>
+  <div id="tiles-container"></div>
+  <div id="buttons">
+    <button id="submit-btn">Check</button>
+    <button id="try-again-btn" style="display:none;">Try Again</button>
+    <button id="next-level-btn" style="display:none;">Next Level</button>
+    <button id="restart-btn">Restart</button>
+  </div>
+</div>
+
+<!-- Trivia section added here, initially hidden -->
+<div id="triviaSection">
+  <h3>Did You Know?</h3>
+  <div id="triviaContent">
+    The electromagnetic spectrum encompasses all types of electromagnetic radiation, from radio waves to gamma rays. Different types have different wavelengths and energies, important for many technological and medical applications.
+  </div>
+</div>
+
+<div id="feedback"></div>
+
+<!-- Background music -->
+<audio id="bg-music" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" autoplay loop></audio>
+
+<script>
+  // Particles background code
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+
+  let particlesArray;
+  const maxParticles = 80;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 2 + 1;
+      this.speedX = (Math.random() - 0.5) * 0.5;
+      this.speedY = (Math.random() - 0.5) * 0.5;
+    }
+    update() {
+      this.x += this.speedX;
+      this.y += this.speedY;
+      if (this.x > canvas.width) this.x = 0;
+      if (this.x < 0) this.x = canvas.width;
+      if (this.y > canvas.height) this.y = 0;
+      if (this.y < 0) this.y = canvas.height;
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fill();
+    }
+  }
+
+  function initParticles() {
+    particlesArray = [];
+    for (let i=0; i<maxParticles; i++) {
+      particlesArray.push(new Particle());
+    }
+  }
+
+  function handleParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let p of particlesArray) {
+      p.update();
+      p.draw();
+    }
+    for (let a=0; a<particlesArray.length; a++) {
+      for (let b=a+1; b<particlesArray.length; b++) {
+        const dx = particlesArray[a].x - particlesArray[b].x;
+        const dy = particlesArray[a].y - particlesArray[b].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(255,255,255,${1 - dist/100})`;
+          ctx.lineWidth = 1;
+          ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+          ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(handleParticles);
+  }
+  initParticles();
+  handleParticles();
+
+  // Define the correct order
+  const correctOrder = [
+    'Radio waves',
+    'Microwaves',
+    'Infrared',
+    'Visible light',
+    'Ultraviolet',
+    'X-rays',
+    'Gamma rays'
+  ];
+
+  let tilesData = [];
+  const tilesContainer = document.getElementById('tiles-container');
+
+  // Timer variables
+  let totalTime = 30; // seconds
+  let timerInterval = null;
+
+  // Score stars
+  let starsCount = 0;
+
+  function initTiles() {
+    const shuffled = [...correctOrder].sort(() => Math.random() - 0.5);
+    tilesData = shuffled;
+    renderTiles();
+  }
+
+  function renderTiles() {
+    tilesContainer.innerHTML = '';
+    tilesData.forEach((text, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'tile-wrapper';
+
+      const label = document.createElement('div');
+      label.className = 'tile-number';
+      label.textContent = `#${index + 1}`;
+
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.draggable = true;
+      tile.textContent = text;
+      tile.dataset.index = index;
+      tile.addEventListener('dragstart', dragStart);
+      tile.addEventListener('dragover', dragOver);
+      tile.addEventListener('drop', drop);
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(tile);
+      tilesContainer.appendChild(wrapper);
+    });
+  }
+
+  let draggedTile = null;
+
+  function dragStart(e) {
+    draggedTile = e.currentTarget;
+  }
+
+  function dragOver(e) {
+    e.preventDefault();
+  }
+
+  function drop(e) {
+    e.preventDefault();
+    const targetTile = e.currentTarget;
+    if (draggedTile && targetTile && draggedTile !== targetTile) {
+      const draggedIndex = Array.from(tilesContainer.children).indexOf(draggedTile.parentElement);
+      const targetIndex = Array.from(tilesContainer.children).indexOf(targetTile.parentElement);
+      [tilesData[draggedIndex], tilesData[targetIndex]] = [tilesData[targetIndex], tilesData[draggedIndex]];
+      renderTiles();
+    }
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    totalTime = 30;
+    document.getElementById('timer').textContent = `Time: ${totalTime}`;
+    timerInterval = setInterval(() => {
+      totalTime--;
+      if (totalTime >= 0) {
+        document.getElementById('timer').textContent = `Time: ${totalTime}`;
+      }
+      if (totalTime < 0) {
+        clearInterval(timerInterval);
+        checkSolution(true); // Time's up, auto-check
+      }
+    }, 1000);
+  }
+
+  function calculateStars() {
+    if (totalTime >= 22) return 3;
+    if (totalTime >= 17) return 2;
+    if (totalTime >= 10) return 1;
+    return 0;
+  }
+
+  function updateStarsDisplay() {
+    const starStr = '★'.repeat(starsCount);
+    document.getElementById('stars').textContent = 'Stars: ' + starStr;
+  }
+
+  function checkSolution(auto=false) {
+    clearInterval(timerInterval);
+    let isCorrect = true;
+    for (let i=0; i<tilesData.length; i++) {
+      if (tilesData[i] !== correctOrder[i]) {
+        isCorrect = false;
+        break;
+      }
+    }
+
+    if (isCorrect || auto) {
+      starsCount = calculateStars();
+    } else {
+      starsCount = 0;
+    }
+    updateStarsDisplay();
+
+    const feedbackDiv = document.getElementById('feedback');
+    feedbackDiv.style.display = 'block';
+
+    if (isCorrect) {
+      feedbackDiv.innerHTML = 'Correct! Well done!';
+      document.getElementById('next-level-btn').style.display = 'block';
+      document.getElementById('try-again-btn').style.display = 'block';
+      // Show the trivia when correct
+      document.getElementById('triviaSection').style.display = 'block';
+    } else {
+      feedbackDiv.innerHTML = 'Wrong order! Try again.';
+      document.getElementById('next-level-btn').style.display = 'none';
+      document.getElementById('try-again-btn').style.display = 'block';
+      // Hide trivia if wrong
+      document.getElementById('triviaSection').style.display = 'none';
+    }
+  }
+
+  document.getElementById('submit-btn').addEventListener('click', () => {
+    checkSolution();
+  });
+  document.getElementById('try-again-btn').addEventListener('click', () => {
+    restartLevel();
+  });
+  document.getElementById('restart-btn').addEventListener('click', () => {
+    restartLevel();
+  });
+  document.getElementById('next-level-btn').addEventListener('click', () => {
+    window.location.href = 'level2.html'; // or your next level URL
+  });
+
+  function restartLevel() {
+    initTiles();
+    startTimer();
+    document.getElementById('feedback').style.display = 'none';
+    document.getElementById('try-again-btn').style.display = 'none';
+    document.getElementById('next-level-btn').style.display = 'none';
+    totalTime = 30;
+    document.getElementById('timer').textContent = `Time: ${totalTime}`;
+    starsCount = 0;
+    updateStarsDisplay();
+    // Hide trivia again
+    document.getElementById('triviaSection').style.display = 'none';
+  }
+
+  // Initialize game
+  initTiles();
+  startTimer();
+</script>
+</body>
+</html>
