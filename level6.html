@@ -14,6 +14,33 @@
     margin: 20px;
     text-align: center;
     color: #333;
+    position: relative; /* To contain the canvas */
+    overflow: hidden; /* Ensure particles don't overflow */
+  }
+  /* Make the canvas cover the entire background */
+  #particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0; /* Behind everything else */
+  }
+  /* Content overlays on top of particles */
+  h1, #question, .spectrum, #feedback, #scoreBoard, #message, #nextLevelBtn, #restartBtn, #trivia {
+    position: relative; /* Keep content above the canvas */
+    z-index: 1;
+  }
+  /* Rest of your styles remain unchanged */
+  body {
+    font-family: Arial, sans-serif;
+    /* Keep your background pattern */
+    background: linear-gradient(135deg, #e0f7fa, #ffe0b2),
+                repeating-conic-gradient(#90caf9 0deg 10deg, transparent 10deg 20deg);
+    background-size: 100px 100px, 50px 50px;
+    margin: 20px;
+    text-align: center;
+    color: #333;
   }
   h1 {
     margin-bottom: 10px;
@@ -30,21 +57,21 @@
     justify-content: center;
   }
   .wave {
-  width: 135px; 
-  height: 72px; 
-  margin: 10px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  color: #fff;
-  font-size: 1em;
-  padding: 10px;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
+    width: 135px; 
+    height: 72px; 
+    margin: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #fff;
+    font-size: 1em;
+    padding: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
   .wave:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 10px rgba(0,0,0,0.2);
@@ -98,6 +125,9 @@
 </style>
 </head>
 <body>
+<!-- Canvas for particles background -->
+<canvas id="particles"></canvas>
+
 <h1>Electromagnetic Spectrum Perfect Score Game</h1>
 <div id="question">Loading question...</div>
 
@@ -222,7 +252,6 @@ function renderWaves() {
 // Load current question
 function loadQuestion() {
   if (currentQuestionIndex >= questions.length) {
-    // Player answered all questions correctly
     questionDiv.style.display = 'none';
     feedbackDiv.innerText = '';
     messageDiv.innerText = 'Congratulations! You answered all questions correctly!';
@@ -257,20 +286,90 @@ function updateScore() {
 }
 
 function showTrivia() {
-  // Pick a random trivia fact
   const fact = triviaFacts[Math.floor(Math.random() * triviaFacts.length)];
   triviaDiv.innerHTML = `<strong>Did you know?</strong> ${fact}`;
   triviaDiv.style.display = 'block';
 }
 
 function nextLevel() {
-  // For demonstration, just restart the game for next level
-  // You can customize to load new questions or increase difficulty
   startGame();
 }
 
-// Start the game initially
+// Start initial game
 startGame();
+
+/* --- Particles background code --- */
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+
+let particlesArray;
+const maxParticles = 50;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Particle {
+  constructor() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 2 + 1;
+    this.speedX = (Math.random() - 0.5) * 0.5;
+    this.speedY = (Math.random() - 0.5) * 0.5;
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    if (this.x > canvas.width) this.x = 0;
+    if (this.x < 0) this.x = canvas.width;
+    if (this.y > canvas.height) this.y = 0;
+    if (this.y < 0) this.y = canvas.height;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fill();
+  }
+}
+
+function initParticles() {
+  particlesArray = [];
+  for (let i=0; i<maxParticles; i++) {
+    particlesArray.push(new Particle());
+  }
+}
+
+function handleParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let p of particlesArray) {
+    p.update();
+    p.draw();
+  }
+  // Connect close particles
+  for (let a=0; a<particlesArray.length; a++) {
+    for (let b=a+1; b<particlesArray.length; b++) {
+      const dx = particlesArray[a].x - particlesArray[b].x;
+      const dy = particlesArray[a].y - particlesArray[b].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 100) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255,255,255,${1 - dist/100})`;
+        ctx.lineWidth = 1;
+        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(handleParticles);
+}
+
+initParticles();
+handleParticles();
 </script>
 </body>
 </html>
