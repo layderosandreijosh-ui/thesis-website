@@ -47,7 +47,7 @@
 </head>
 <body>
 
-<h2 style="text-align:center; color:#0ff;">Make it FLap</h2>
+<h2 style="text-align:center; color:#0ff;">Level 5: Make it Flap!</h2>
 <canvas id="gameCanvas" width="800" height="500"></canvas>
 <div id="info">
   <div id="score">Score: 0</div>
@@ -57,7 +57,7 @@
 </div>
 
 <script>
-// Load multiple images for beneficial and hazard squares
+// Load multiple images for beneficial and hazard squares (unchanged)
 const beneficialImagesSrcs = [
   'https://imgs.search.brave.com/gRNMkUDxwFzgN975znTfhB3UOw9UEzcAhakCnoWcJh0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9wNy5o/aWNsaXBhcnQuY29t/L3ByZXZpZXcvODM0/LzQ0Ny82NzgvY2Fy/dG9vbi1jbGlwLWFy/dC10cmFuc3BhcmVu/dC1jdXRlLXN1bi1w/aWN0dXJlLXRodW1i/bmFpbC5qcGc', // Example icon 1
   'https://imgs.search.brave.com/eZSEDiOfghcScu6LuT4UsbaNbAWzRnSktgN0EL3sRro/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvNjU1/MTYyMTU4L3ZlY3Rv/ci9yYWRpby10b3dl/ci1iYWNrZ3JvdW5k/LmpwZz9zPTYxMng2/MTImdz0wJms9MjAm/Yz1fWlNsLWpMcFo1/eHBjdTFsUUItdFZM/MUt0eWtsRnBCZjJr/M2lSSlZpRzdVPQ', // Example icon 2
@@ -108,9 +108,9 @@ let score = 0;
 let gameOver = false;
 let levelComplete = false;
 
-const targetScore = 20;
+const targetScore = 2;
 
-// Player
+// Player object
 const player = {
   x: 50,
   y: 250,
@@ -134,7 +134,52 @@ const triviaFacts = [
   "Solar radiation includes visible light, UV rays, and infrared radiation."
 ];
 
+// ------------------- Particles Background -------------------
+
+const particles = [];
+const maxParticles = 100;
+
+function initParticles() {
+  for (let i=0; i<maxParticles; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      radius: Math.random() * 2 + 1,
+      alpha: Math.random()
+    });
+  }
+}
+
+function updateParticles() {
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    // Wrap around edges
+    if (p.x < 0) p.x += canvas.width;
+    if (p.x > canvas.width) p.x -= canvas.width;
+    if (p.y < 0) p.y += canvas.height;
+    if (p.y > canvas.height) p.y -= canvas.height;
+  });
+}
+
+function drawParticles() {
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+  particles.forEach(p => {
+    ctx.globalAlpha = p.alpha;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1.0;
+}
+
+// ------------------- Game Initialization -------------------
+
 function init() {
+  initParticles();
+
   // Generate items periodically with random images
   function generateItems() {
     if (frameCount % 100 === 0) {
@@ -185,7 +230,7 @@ function init() {
 
   // Updated function to navigate to level6.html
   function startNextLevel() {
-    window.location.href = 'level6.html'; // <-- Connect to level6.html
+    window.location.href = 'level6.html'; // Connect to next level
   }
 
   function drawPlayer() {
@@ -205,6 +250,10 @@ function init() {
   function update() {
     if (gameOver || levelComplete) return;
 
+    // Update particles
+    updateParticles();
+
+    // Update player physics
     player.vy += player.gravity;
     player.y += player.vy;
 
@@ -254,6 +303,8 @@ function init() {
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Draw particles in background
+    drawParticles();
     drawPlayer();
     drawItems();
     ctx.fillStyle = '#fff';
@@ -298,4 +349,3 @@ function init() {
 </script>
 </body>
 </html>
-
