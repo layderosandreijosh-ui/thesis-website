@@ -26,7 +26,6 @@
     padding: 10px;
   }
 
-  /* Canvas for particles background */
   #particles {
     position: fixed;
     top: 0;
@@ -36,7 +35,6 @@
     z-index: 0;
   }
 
-  /* Game container */
   .game-container {
     position: relative;
     z-index: 2;
@@ -51,7 +49,6 @@
     align-items: center;
   }
 
-  /* Header & Timer + Score */
   #header {
     width: 100%;
     display: flex;
@@ -72,7 +69,6 @@
     font-size: 20px;
   }
 
-  /* Buttons container */
   #buttons {
     display: flex;
     gap: 20px;
@@ -96,7 +92,6 @@
     transform: scale(1.05);
   }
 
-  /* Maximize space for tiles container */
   #tiles-container {
     display: flex;
     gap: 20px;
@@ -105,17 +100,15 @@
     width: 100%;
   }
 
-  /* Container for each tile + number */
   .tile-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    cursor: grab;
+    cursor: pointer;
     user-select: none;
     width: 160px;
   }
 
-  /* Number label above each tile */
   .tile-number {
     font-family: 'Orbitron', sans-serif;
     font-size: 20px;
@@ -124,7 +117,6 @@
     font-weight: bold;
   }
 
-  /* Tile style, larger size */
   .tile {
     padding: 25px 35px;
     border-radius: 15px;
@@ -135,10 +127,9 @@
     text-align: center;
     font-family: 'Orbitron', sans-serif;
     box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-    transition: background-color 0.3s, transform 0.2s;
+    transition: background-color 0.3s, transform 0.2s, outline 0.2s;
   }
 
-  /* Colors for tiles (distinct) */
   .tile:nth-child(1) { background-color: #FF5733; }
   .tile:nth-child(2) { background-color: #FF8D33; }
   .tile:nth-child(3) { background-color: #FFC300; }
@@ -148,7 +139,6 @@
   .tile:nth-child(7) { background-color: #3380FF; }
   .tile:nth-child(8) { background-color: #8C33FF; }
 
-  /* Feedback overlay */
   #feedback {
     position: absolute;
     top: 10%;
@@ -164,14 +154,12 @@
     z-index: 5;
   }
 
-  /* Stars display */
   #stars {
     margin-top: 10px;
     font-size: 24px;
-    color: #ffd700; /* gold */
+    color: #ffd700;
   }
 
-  /* Trivia section styles - added */
   #triviaSection {
     margin-top: 20px;
     background: #444;
@@ -179,12 +167,11 @@
     border-radius: 10px;
     max-width: 800px;
     width: 90%;
-    display: none; /* hidden initially */
+    display: none;
   }
 
   #triviaSection h3 {
     margin-bottom: 10px;
-    text-align: center;
   }
 
   #triviaContent {
@@ -195,7 +182,6 @@
 </head>
 <body>
 
-<!-- Particles background -->
 <canvas id="particles"></canvas>
 
 <div class="game-container">
@@ -216,7 +202,6 @@
   </div>
 </div>
 
-<!-- Trivia section added here, initially hidden -->
 <div id="triviaSection">
   <h3>Did You Know?</h3>
   <div id="triviaContent">
@@ -226,11 +211,10 @@
 
 <div id="feedback"></div>
 
-<!-- Background music -->
 <audio id="bg-music" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" autoplay loop></audio>
 
 <script>
-  // Particles background code
+  // Particles background code (unchanged)
   const canvas = document.getElementById('particles');
   const ctx = canvas.getContext('2d');
 
@@ -322,6 +306,9 @@
   // Score stars
   let starsCount = 0;
 
+  // For tap-to-swap
+  let selectedTileIndex = null;
+
   function initTiles() {
     const shuffled = [...correctOrder].sort(() => Math.random() - 0.5);
     tilesData = shuffled;
@@ -340,37 +327,55 @@
 
       const tile = document.createElement('div');
       tile.className = 'tile';
-      tile.draggable = true;
+
+      // Remove draggable events
+      // tile.draggable = true;
+      // tile.addEventListener('dragstart', dragStart);
+      // tile.addEventListener('dragover', dragOver);
+      // tile.addEventListener('drop', drop);
+
+      // Add click event for tap-to-swap
+      tile.addEventListener('click', () => {
+        handleTileClick(index);
+      });
+
       tile.textContent = text;
       tile.dataset.index = index;
-      tile.addEventListener('dragstart', dragStart);
-      tile.addEventListener('dragover', dragOver);
-      tile.addEventListener('drop', drop);
-
       wrapper.appendChild(label);
       wrapper.appendChild(tile);
       tilesContainer.appendChild(wrapper);
     });
   }
 
-  let draggedTile = null;
-
-  function dragStart(e) {
-    draggedTile = e.currentTarget;
-  }
-
-  function dragOver(e) {
-    e.preventDefault();
-  }
-
-  function drop(e) {
-    e.preventDefault();
-    const targetTile = e.currentTarget;
-    if (draggedTile && targetTile && draggedTile !== targetTile) {
-      const draggedIndex = Array.from(tilesContainer.children).indexOf(draggedTile.parentElement);
-      const targetIndex = Array.from(tilesContainer.children).indexOf(targetTile.parentElement);
-      [tilesData[draggedIndex], tilesData[targetIndex]] = [tilesData[targetIndex], tilesData[draggedIndex]];
+  function handleTileClick(index) {
+    if (selectedTileIndex === null) {
+      // No tile selected yet
+      selectedTileIndex = index;
+      highlightTile(index);
+    } else if (selectedTileIndex === index) {
+      // Clicked same tile again, deselect
+      unhighlightTile(selectedTileIndex);
+      selectedTileIndex = null;
+    } else {
+      // Swap
+      [tilesData[selectedTileIndex], tilesData[index]] = [tilesData[index], tilesData[selectedTileIndex]];
+      unhighlightTile(selectedTileIndex);
+      selectedTileIndex = null;
       renderTiles();
+    }
+  }
+
+  function highlightTile(index) {
+    const tileDivs = document.querySelectorAll('.tile');
+    if (tileDivs[index]) {
+      tileDivs[index].style.outline = '3px solid #fff'; // highlight
+    }
+  }
+
+  function unhighlightTile(index) {
+    const tileDivs = document.querySelectorAll('.tile');
+    if (tileDivs[index]) {
+      tileDivs[index].style.outline = 'none';
     }
   }
 
@@ -385,7 +390,7 @@
       }
       if (totalTime < 0) {
         clearInterval(timerInterval);
-        checkSolution(true); // Time's up, auto-check
+        checkSolution(true); // time's up
       }
     }, 1000);
   }
@@ -426,13 +431,11 @@
       feedbackDiv.innerHTML = 'Correct! Well done!';
       document.getElementById('next-level-btn').style.display = 'block';
       document.getElementById('try-again-btn').style.display = 'block';
-      // Show the trivia when correct
       document.getElementById('triviaSection').style.display = 'block';
     } else {
       feedbackDiv.innerHTML = 'Wrong order! Try again.';
       document.getElementById('next-level-btn').style.display = 'none';
       document.getElementById('try-again-btn').style.display = 'block';
-      // Hide trivia if wrong
       document.getElementById('triviaSection').style.display = 'none';
     }
   }
@@ -460,13 +463,13 @@
     document.getElementById('timer').textContent = `Time: ${totalTime}`;
     starsCount = 0;
     updateStarsDisplay();
-    // Hide trivia again
     document.getElementById('triviaSection').style.display = 'none';
   }
 
   // Initialize game
   initTiles();
   startTimer();
+
 </script>
 </body>
 </html>
