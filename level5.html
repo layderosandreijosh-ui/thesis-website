@@ -3,287 +3,298 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ray Reflection Puzzle - Drag Mirrors & Level Complete</title>
+<title>EMR Explorer</title>
 <style>
   body {
     margin: 0;
-    background-color: #222; /* Background color for the page */
-    font-family: Arial, sans-serif;
+    font-family: 'Times New Roman', Times, serif, sans-serif;
+    background: #222;
+    color: #fff;
+    overflow: hidden;
   }
-  canvas {
+  #gameCanvas {
     display: block;
-    margin: 10px auto;
-    background: linear-gradient(to bottom, #87ceeb, #ffffff); /* Sky gradient background */
-    border: 2px solid #333;
+    background: linear-gradient(to bottom, #003366, #000);
+    margin: 0 auto;
   }
-  #status {
+  #info {
     text-align: center;
-    font-size: 24px;
-    color: green;
+    padding: 10px;
+  }
+  #score {
+    font-size: 1.2em;
+  }
+  #message {
+    font-size: 1.2em;
     margin-top: 10px;
+  }
+  button {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+  }
+  #trivia {
+    margin-top: 10px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 8px;
   }
 </style>
 </head>
 <body>
 
-<canvas id="gameCanvas" width="900" height="700"></canvas>
-<div id="status">Aim the mirrors to hit the target!</div>
+<h2 style="text-align:center; color:#0ff;">Make it FLap</h2>
+<canvas id="gameCanvas" width="800" height="500"></canvas>
+<div id="info">
+  <div id="score">Score: 0</div>
+  <div id="message"></div>
+  <div id="buttons"></div>
+  <div id="trivia"></div>
+</div>
 
 <script>
+// Load multiple images for beneficial and hazard squares
+const beneficialImagesSrcs = [
+  'https://imgs.search.brave.com/gRNMkUDxwFzgN975znTfhB3UOw9UEzcAhakCnoWcJh0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9wNy5o/aWNsaXBhcnQuY29t/L3ByZXZpZXcvODM0/LzQ0Ny82NzgvY2Fy/dG9vbi1jbGlwLWFy/dC10cmFuc3BhcmVu/dC1jdXRlLXN1bi1w/aWN0dXJlLXRodW1i/bmFpbC5qcGc', // Example icon 1
+  'https://imgs.search.brave.com/eZSEDiOfghcScu6LuT4UsbaNbAWzRnSktgN0EL3sRro/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvNjU1/MTYyMTU4L3ZlY3Rv/ci9yYWRpby10b3dl/ci1iYWNrZ3JvdW5k/LmpwZz9zPTYxMng2/MTImdz0wJms9MjAm/Yz1fWlNsLWpMcFo1/eHBjdTFsUUItdFZM/MUt0eWtsRnBCZjJr/M2lSSlZpRzdVPQ', // Example icon 2
+  'https://imgs.search.brave.com/ny320fabRhkHvnqmtwGQn4OCAWrnCUPL5npdTq8PXJc/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLmZs/YXRpY29uLmNvbS8x/MjgvMjA1OS8yMDU5/Njc2LnBuZw' // Add more images
+];
+
+const hazardImagesSrcs = [
+  'https://imgs.search.brave.com/-8DJnhvcfpGUl1BAJNIrhfr5Rz8IplapHaDeahKm5-8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/cHJlbWl1bS12ZWN0/b3IveC1yYXktbWFj/aGluZS1zY2Fubmlu/Zy1odW1hbi1ib2R5/LWlsbHVzdHJhdGlv/bl8yODQwOTItMjMy/My5qcGc_c2VtdD1h/aXNfaHlicmlkJnc9/NzQwJnE9ODA', // Example hazard 1
+  'https://imgs.search.brave.com/8fWZD40rh3FlInCEWtn2CLtpmgl-YP-JtmStS8ALh-Y/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzE2LzE0LzQ0LzM0/LzM2MF9GXzE2MTQ0/NDM0NTZfTE5yS0I1/eWVMeUpjcnhFMzQ2/d2Z0YnFBS2lSTWFn/S2ouanBn', // Example hazard 2
+  'https://imgs.search.brave.com/03_APbGHDWIEzPZE65MvqCbMkst5q3DjdxgtLL8ydIY/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly93d3cu/c2h1dHRlcnN0b2Nr/LmNvbS9pbWFnZS12/ZWN0b3IvcmFkaW9h/Y3RpdmUtaGF6YXJk/LXNpZ24tbnVjbGVh/ci1ub25pb25pemlu/Zy0yNjBudy0xOTM2/NDY5MDg5LmpwZw' // Add more images
+];
+
+const beneficialImgs = [];
+const hazardImgs = [];
+
+let imagesLoadedCount = 0;
+
+// Load beneficial images
+beneficialImagesSrcs.forEach(src => {
+  const img = new Image();
+  img.src = src;
+  img.onload = () => {
+    beneficialImgs.push(img);
+    imagesLoadedCount++;
+    if (imagesLoadedCount === beneficialImagesSrcs.length + hazardImagesSrcs.length) {
+      init(); // Start game after all images load
+    }
+  };
+});
+
+// Load hazard images
+hazardImagesSrcs.forEach(src => {
+  const img = new Image();
+  img.src = src;
+  img.onload = () => {
+    hazardImgs.push(img);
+    imagesLoadedCount++;
+    if (imagesLoadedCount === beneficialImagesSrcs.length + hazardImagesSrcs.length) {
+      init();
+    }
+  };
+});
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const source = { x: 50, y: 650 };
-const target = { x: 850, y: 50 };
-let levelCleared = false;
+let score = 0;
+let gameOver = false;
+let levelComplete = false;
 
-// Initialize mirrors
-let mirrors = [
-  { x: 450, y: 350, length: 150, angle: Math.PI / 4 },
-  { x: 600, y: 300, length: 150, angle: -Math.PI / 6 },
+const targetScore = 2;
+
+// Player
+const player = {
+  x: 50,
+  y: 250,
+  radius: 15,
+  vy: 0,
+  gravity: 0.2,
+  lift: -5
+};
+
+// Items & hazards
+const items = [];
+const itemSize = 30;
+let frameCount = 0;
+
+// Trivia facts
+const triviaFacts = [
+  "Electromagnetic radiation includes visible light, radio waves, X-rays, and more.",
+  "Wi-Fi signals are a form of electromagnetic radiation with specific frequencies.",
+  "Medical imaging techniques like MRI use magnetic fields and radio waves.",
+  "Excessive exposure to high-frequency EMR can be harmful to health.",
+  "Solar radiation includes visible light, UV rays, and infrared radiation."
 ];
 
-const initialMirrors = JSON.parse(JSON.stringify(mirrors));
+function init() {
+  // Generate items periodically with random images
+  function generateItems() {
+    if (frameCount % 100 === 0) {
+      const isBeneficial = Math.random() < 0.6;
+      const yPos = Math.random() * (canvas.height - itemSize);
+      const imgArray = isBeneficial ? beneficialImgs : hazardImgs;
+      const img = imgArray[Math.floor(Math.random() * imgArray.length)];
+      items.push({ x: canvas.width, y: yPos, type: isBeneficial ? 'beneficial' : 'hazard', img: img });
+    }
+  }
 
-let dragMirrorIndex = null;
-let dragOffset = { x: 0, y: 0 };
-
-function drawSource() {
-  ctx.fillStyle = 'blue';
-  ctx.beginPath();
-  ctx.arc(source.x, source.y, 8, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawTarget() {
-  ctx.fillStyle = 'red';
-  ctx.beginPath();
-  ctx.arc(target.x, target.y, 10, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawMirrors() {
-  mirrors.forEach(m => {
-    ctx.save();
-    ctx.translate(m.x, m.y);
-    ctx.rotate(m.angle);
-    ctx.fillStyle = 'brown';
-    ctx.fillRect(-m.length / 2, -5, m.length, 10);
-    ctx.restore();
+  // User input
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      player.vy = player.lift;
+    }
   });
-}
+  canvas.addEventListener('click', () => {
+    if (!gameOver && !levelComplete) {
+      player.vy = player.lift;
+    }
+  });
+  document.getElementById('buttons').addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') {
+      if (e.target.id === 'tryAgain') {
+        resetGame();
+      } else if (e.target.id === 'nextLevel') {
+        startNextLevel();
+      }
+    }
+  });
 
-function getMirrorEndpoints(m) {
-  const dx = Math.cos(m.angle) * m.length / 2;
-  const dy = Math.sin(m.angle) * m.length / 2;
-  return {
-    start: { x: m.x - dx, y: m.y - dy },
-    end: { x: m.x + dx, y: m.y + dy }
-  };
-}
+  // Reset game
+  function resetGame() {
+    score = 0;
+    gameOver = false;
+    levelComplete = false;
+    document.getElementById('score').textContent = 'Score: 0';
+    document.getElementById('message').textContent = '';
+    document.getElementById('trivia').innerHTML = '';
+    document.getElementById('buttons').innerHTML = '';
+    items.length = 0;
+    player.y = 250;
+    player.vy = 0;
+    frameCount = 0;
+    loop();
+  }
 
-function drawRays() {
-  if (levelCleared) return; // Don't draw rays if level is cleared
-  let currentPoint = { x: source.x, y: source.y };
-  let currentDir = { x: 1, y: 0 };
-  let hitTarget = false; // Local variable to track hitting the target
+  // Updated function to navigate to level6.html
+  function startNextLevel() {
+    window.location.href = 'level6.html'; // <-- Connect to level6.html
+  }
 
-  const maxReflections = 5;
+  function drawPlayer() {
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#00ffff'; // Blue wave
+    ctx.fill();
+    ctx.closePath();
+  }
 
-  for (let i = 0; i < maxReflections; i++) {
-    let closestDist = Infinity;
-    let closestPoint = null;
-    let closestMirror = null;
-    let normalAtHit = null;
+  function drawItems() {
+    items.forEach(item => {
+      ctx.drawImage(item.img, item.x, item.y, itemSize, itemSize);
+    });
+  }
 
-    // Find closest intersection with mirrors
-    for (let m of mirrors) {
-      const endpoint = getMirrorEndpoints(m);
-      const lineStart = endpoint.start;
-      const lineEnd = endpoint.end;
+  function update() {
+    if (gameOver || levelComplete) return;
 
-      const intersect = getLineIntersection(currentPoint, currentDir, lineStart, lineEnd);
-      if (intersect && intersect.t > 0 && intersect.t < closestDist) {
-        closestDist = intersect.t;
-        closestPoint = { x: intersect.x, y: intersect.y };
-        closestMirror = m;
+    player.vy += player.gravity;
+    player.y += player.vy;
 
-        const mirrorDir = {
-          x: lineEnd.x - lineStart.x,
-          y: lineEnd.y - lineStart.y
-        };
-        const len = Math.hypot(mirrorDir.x, mirrorDir.y);
-        normalAtHit = {
-          x: -mirrorDir.y / len,
-          y: mirrorDir.x / len
-        };
-        const dot = normalAtHit.x * currentDir.x + normalAtHit.y * currentDir.y;
-        if (dot > 0) {
-          normalAtHit = { x: -normalAtHit.x, y: -normalAtHit.y };
+    if (player.y + player.radius > canvas.height) {
+      player.y = canvas.height - player.radius;
+      player.vy = 0;
+    }
+    if (player.y - player.radius < 0) {
+      player.y = player.radius;
+      player.vy = 0;
+    }
+
+    generateItems();
+
+    // Move items
+    items.forEach(item => {
+      item.x -= 3;
+    });
+    while (items.length > 0 && items[0].x + itemSize < 0) {
+      items.shift();
+    }
+
+    // Check collisions
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (
+        player.x + player.radius > item.x &&
+        player.x - player.radius < item.x + itemSize &&
+        player.y + player.radius > item.y &&
+        player.y - player.radius < item.y + itemSize
+      ) {
+        if (item.type === 'beneficial') {
+          score++;
+          document.getElementById('score').textContent = 'Score: ' + score;
+          items.splice(i,1);
+          if (score >= targetScore) {
+            levelComplete = true;
+            showWin();
+          }
+        } else {
+          gameOver = true;
+          showGameOver();
         }
       }
     }
+  }
 
-    // No intersection, draw to edge of canvas
-    if (closestPoint) {
-      ctx.strokeStyle = 'orange';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(currentPoint.x, currentPoint.y);
-      ctx.lineTo(closestPoint.x, closestPoint.y);
-      ctx.stroke();
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPlayer();
+    drawItems();
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Arial';
+    ctx.fillText('Avoid hazards. Collect beneficial sources.', 10, 20);
+    ctx.fillText('Score: ' + score, 700, 20);
+  }
 
-      // *** ADDITION: Check if the intersection point hits the red target ***
-      if (Math.hypot(closestPoint.x - target.x, closestPoint.y - target.y) < 15) {
-        hitTarget = true; // Mark that the target has been hit
-        ctx.strokeStyle = 'purple'; // Change line color to indicate hit
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(closestPoint.x, closestPoint.y);
-        ctx.lineTo(target.x, target.y);
-        ctx.stroke();
-        break; // Stop tracing after hitting the target
-      }
-      // *** END ADDITION ***
+  function showGameOver() {
+    document.getElementById('message').textContent = 'Exposure! Game Over.';
+    document.getElementById('buttons').innerHTML = '<button id="tryAgain">Try Again</button>';
+    showTrivia(false);
+  }
 
-      // Draw normal at hit point (optional visual)
-      ctx.strokeStyle = 'blue';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(closestPoint.x - normalAtHit.x * 20, closestPoint.y - normalAtHit.y * 20);
-      ctx.lineTo(closestPoint.x + normalAtHit.x * 20, closestPoint.y + normalAtHit.y * 20);
-      ctx.stroke();
+  function showWin() {
+    document.getElementById('message').textContent = 'Congratulations! You reached 20 points!';
+    document.getElementById('buttons').innerHTML = '<button id="nextLevel">Next Level</button>';
+    showTrivia(true);
+  }
 
-      // Reflect the ray
-      const incidentVec = currentDir;
-      const dot = incidentVec.x * normalAtHit.x + incidentVec.y * normalAtHit.y;
-      const reflectedVec = {
-        x: incidentVec.x - 2 * dot * normalAtHit.x,
-        y: incidentVec.y - 2 * dot * normalAtHit.y
-      };
-      const mag = Math.hypot(reflectedVec.x, reflectedVec.y);
-      currentDir = { x: reflectedVec.x / mag, y: reflectedVec.y / mag };
-
-      // Move current point slightly past hit point
-      currentPoint = {
-        x: closestPoint.x + currentDir.x * 0.1,
-        y: closestPoint.y + currentDir.y * 0.1
-      };
+  function showTrivia(win) {
+    const triviaDiv = document.getElementById('trivia');
+    if (win) {
+      const trivia = triviaFacts[Math.floor(Math.random() * triviaFacts.length)];
+      triviaDiv.innerHTML = '<strong>Did you know?</strong> ' + trivia;
     } else {
-      // No intersection, draw to canvas edge
-      ctx.strokeStyle = 'orange';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(currentPoint.x, currentPoint.y);
-      ctx.lineTo(currentPoint.x + currentDir.x * 1000, currentPoint.y + currentDir.y * 1000);
-      ctx.stroke();
-      break;
+      triviaDiv.innerHTML = '';
     }
   }
 
-  // Show message if target is hit
-  const statusDiv = document.getElementById('status');
-  if (hitTarget) {
-    statusDiv.textContent = 'Level Cleared! 🎉';
-    statusDiv.style.color = 'green';
-    levelCleared = true; // Set global flag to stop further drawing
-  } else {
-    statusDiv.textContent = 'Aim the mirrors to hit the target!';
-    statusDiv.style.color = 'black';
-  }
-}
-
-function getLineIntersection(p, d, a, b) {
-  const v1 = { x: a.x - p.x, y: a.y - p.y };
-  const v2 = { x: b.x - a.x, y: b.y - a.y };
-  const v3 = { x: -d.y, y: d.x };
-  const dot = v2.x * v3.x + v2.y * v3.y;
-  if (Math.abs(dot) < 0.0001) return null;
-  const t = (v2.x * v1.y - v2.y * v1.x) / dot;
-  if (t < 0) return null;
-  return { x: p.x + d.x * t, y: p.y + d.y * t, t: t };
-}
-
-// Mouse events for dragging mirrors
-canvas.addEventListener('mousedown', (e) => {
-  if (levelCleared) return; // Don't allow dragging after level is cleared
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  for (let i = 0; i < mirrors.length; i++) {
-    const m = mirrors[i];
-    const endpoints = getMirrorEndpoints(m);
-    if (isPointNearLine({ x: mx, y: my }, endpoints.start, endpoints.end, 10)) {
-      dragMirrorIndex = i;
-      dragOffset.x = mx - m.x;
-      dragOffset.y = my - m.y;
-      break;
-    }
-  }
-});
-
-canvas.addEventListener('mouseup', () => {
-  dragMirrorIndex = null;
-});
-
-canvas.addEventListener('mousemove', (e) => {
-  if (dragMirrorIndex !== null && !levelCleared) {
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    mirrors[dragMirrorIndex].x = mx - dragOffset.x;
-    mirrors[dragMirrorIndex].y = my - dragOffset.y;
+  function loop() {
+    if (gameOver || levelComplete) return;
+    update();
     draw();
+    frameCount++;
+    requestAnimationFrame(loop);
   }
-});
 
-function isPointNearLine(pt, start, end, threshold) {
-  const dist = getDistanceToLine(pt, start, end);
-  return dist < threshold;
+  // Start game
+  resetGame();
 }
-function getDistanceToLine(pt, start, end) {
-  const A = pt.x - start.x;
-  const B = pt.y - start.y;
-  const C = end.x - start.x;
-  const D = end.y - start.y;
-  const dot = A * C + B * D;
-  const lenSq = C * C + D * D;
-  const param = lenSq !== 0 ? dot / lenSq : -1;
-  let xx, yy;
-  if (param < 0) {
-    xx = start.x;
-    yy = start.y;
-  } else if (param > 1) {
-    xx = end.x;
-    yy = end.y;
-  } else {
-    xx = start.x + param * C;
-    yy = start.y + param * D;
-  }
-  return Math.hypot(pt.x - xx, pt.y - yy);
-}
-
-// Reset level
-function resetLevel() {
-  mirrors = JSON.parse(JSON.stringify(initialMirrors));
-  levelCleared = false;
-  document.getElementById('status').textContent = 'Aim the mirrors to hit the target!';
-  document.getElementById('status').style.color = 'black';
-  draw();
-}
-
-// Initial draw
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawSource();
-  drawTarget();
-  drawMirrors();
-  drawRays();
-}
-
-// Call draw once at start
-draw();
-
 </script>
 </body>
 </html>
