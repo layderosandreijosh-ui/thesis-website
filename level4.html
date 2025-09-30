@@ -36,7 +36,7 @@
   .item {
     width: 80px;
     height: 80px;
-    cursor: grab;
+    cursor: pointer; /* changed from grab to pointer for tap */
     border: 2px solid #fff;
     border-radius: 8px;
     background-color: #fff;
@@ -45,10 +45,16 @@
     justify-content: center;
     /* Enlarge by 6% */
     transform: scale(1.06);
+    transition: all 0.2s ease;
   }
   .item img {
     max-width: 70px;
     max-height: 70px;
+  }
+  /* Highlight effect */
+  .item.highlight {
+    box-shadow: 0 0 15px 5px yellow;
+    border-color: yellow;
   }
 
   /* Groups for dropping items */
@@ -111,6 +117,23 @@
   transform: scale(1.05);
 }
 
+/* Next Level Button */
+#nextLevelBtn {
+  padding: 10px 20px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2196F3, #64B5F6);
+  color: #fff;
+  display: none; /* hidden initially */
+  margin-top: 20px;
+}
+#nextLevelBtn:hover {
+  transform: scale(1.05);
+}
+
 #trivia {
   margin-top: 20px;
   color: #fff;
@@ -157,6 +180,9 @@
   <button id="tryAgainBtn" style="display:none;">Try Again</button>
 </div>
 
+<!-- Next Level Button -->
+<button id="nextLevelBtn">Next Level</button>
+
 <!-- Levels Button -->
 <button id="levelsBtn">Levels</button>
 
@@ -182,14 +208,29 @@ const itemsData = [
 
 const itemsContainer = document.getElementById('itemsContainer');
 
-// Generate draggable items
+let selectedItemId = null; // Track which item was tapped
+
+// Generate items without draggable
 itemsData.forEach((item) => {
   const div = document.createElement('div');
   div.className = 'item';
-  div.draggable = true;
   div.id = item.id;
   div.setAttribute('data-group', item.group);
-  div.addEventListener('dragstart', dragStart);
+  
+  // Add click event for tap interaction
+  div.addEventListener('click', () => {
+    // Remove highlight from all items
+    document.querySelectorAll('.item').forEach(i => i.classList.remove('highlight'));
+    // Add highlight to clicked item
+    div.classList.add('highlight');
+
+    // If an item is already selected, move it back to container
+    if (selectedItemId && selectedItemId !== item.id) {
+      const prevItem = document.getElementById(selectedItemId);
+      document.getElementById('itemsContainer').appendChild(prevItem);
+    }
+    selectedItemId = item.id;
+  });
 
   const img = document.createElement('img');
   img.src = item.image;
@@ -199,20 +240,30 @@ itemsData.forEach((item) => {
   itemsContainer.appendChild(div);
 });
 
-// Drag and Drop handlers
-function dragStart(event) {
-  event.dataTransfer.setData('text/plain', event.target.id);
+// Function to assign selected item to group
+function assignItemToGroup(itemId, groupType) {
+  const itemDiv = document.getElementById(itemId);
+  if (groupType === 'emit') {
+    document.getElementById('groupEmit').appendChild(itemDiv);
+  } else {
+    document.getElementById('groupNoEmit').appendChild(itemDiv);
+  }
+  itemDiv.setAttribute('data-assigned-group', groupType);
+  selectedItemId = null; // Clear selection after assigning
 }
 
-function drop(event, groupType) {
-  event.preventDefault();
-  const id = event.dataTransfer.getData('text/plain');
-  const itemDiv = document.getElementById(id);
-  // Append the item to the group container
-  event.currentTarget.appendChild(itemDiv);
-  // Store assigned group
-  itemDiv.setAttribute('data-assigned-group', groupType);
-}
+// Add click listeners to groups to handle tap-to-assign
+document.querySelectorAll('.group').forEach(group => {
+  group.addEventListener('click', () => {
+    if (selectedItemId) {
+      if (group.id === 'groupEmit') {
+        assignItemToGroup(selectedItemId, 'emit');
+      } else if (group.id === 'groupNoEmit') {
+        assignItemToGroup(selectedItemId, 'noemit');
+      }
+    }
+  });
+});
 
 // Check correctness
 document.getElementById('checkBtn').addEventListener('click', () => {
@@ -223,7 +274,6 @@ document.getElementById('checkBtn').addEventListener('click', () => {
   allItems.forEach((item) => {
     const assignedGroup = item.getAttribute('data-assigned-group');
     const itemId = item.id;
-    // Find the original data object
     const dataObj = itemsData.find(obj => obj.id === itemId);
     if (dataObj && assignedGroup === dataObj.group) {
       correctCount++;
@@ -244,26 +294,29 @@ document.getElementById('checkBtn').addEventListener('click', () => {
   });
 
   if (allCorrect) {
+    // Show the trivia message
     document.getElementById('trivia').style.display = 'block';
     document.getElementById('trivia').innerHTML = `
       <strong>Trivia:</strong> Radio Frequency waves are used for wireless communication, including cell phones, Wi-Fi, and radio broadcasts. They can transmit information without emitting harmful radiation if properly regulated.
     `;
+    // Disable check button to prevent rechecking
     document.getElementById('checkBtn').disabled = true;
-
-    // Mark level 4 as completed and unlock level 5
+    // Show "Next Level" button
+    document.getElementById('nextLevelBtn').style.display = 'inline-block';
+    // Save progress
     localStorage.setItem('level4Completed', 'true');
     localStorage.setItem('level5Unlocked', 'true');
-    updateLevelsButton();
 
+    updateLevelsButton();
   } else {
     alert('Some items are misplaced! Try again.');
   }
   document.getElementById('tryAgainBtn').style.display = 'inline-block';
 });
 
-// Reset level
+// Handle "Try Again" reset
 document.getElementById('tryAgainBtn').addEventListener('click', () => {
-  // Move items back to original container
+  // Move items back to container
   itemsData.forEach((item) => {
     const itemDiv = document.getElementById(item.id);
     document.getElementById('itemsContainer').appendChild(itemDiv);
@@ -280,12 +333,41 @@ document.getElementById('tryAgainBtn').addEventListener('click', () => {
   document.getElementById('tryAgainBtn').style.display = 'none';
   // Hide trivia
   document.getElementById('trivia').style.display = 'none';
+  // Hide "Next Level" button
+  document.getElementById('nextLevelBtn').style.display = 'none';
 
   // Reset the levels button appearance
   updateLevelsButton();
 });
 
-// Particles background code (unchanged)
+// Handle "Next Level" button click
+document.getElementById('nextLevelBtn').addEventListener('click', () => {
+  window.location.href = 'level5.html';
+});
+
+// Update levels button on load
+function updateLevelsButton() {
+  const btn = document.getElementById('levelsBtn');
+  if (localStorage.getItem('level4Completed') === 'true') {
+  
+  
+   
+    btn.disabled = true;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+// Run on page load
+window.onload = () => {
+  updateLevelsButton();
+  // Show "Next Level" button if level is already completed
+  if (localStorage.getItem('level4Completed') === 'true') {
+    document.getElementById('nextLevelBtn').style.display = 'inline-block';
+  }
+};
+
+/* --- Particles background code (unchanged) --- */
 const canvas = document.getElementById('particles');
 const ctx = canvas.getContext('2d');
 
@@ -336,7 +418,6 @@ function handleParticles() {
     p.update();
     p.draw();
   }
-  // Connect close particles
   for (let a=0; a<particlesArray.length; a++) {
     for (let b=a+1; b<particlesArray.length; b++) {
       const dx = particlesArray[a].x - particlesArray[b].x;
@@ -357,30 +438,6 @@ function handleParticles() {
 
 initParticles();
 handleParticles();
-
-// --- Additional code to manage the Levels button on load ---
-function updateLevelsButton() {
-  const btn = document.getElementById('levelsBtn');
-  if (localStorage.getItem('level4Completed') === 'true') {
-    btn.style.display = 'inline-block';
-    btn.innerText = 'Levels (Completed)';
-    btn.style.background = 'linear-gradient(135deg, #4CAF50, #81C784)';
-    btn.disabled = true;
-  } else {
-    btn.style.display = 'none';
-  }
-}
-
-// Set event listener for the button
-document.getElementById('levelsBtn').addEventListener('click', () => {
-  // Replace with your actual levels page URL
-  window.location.href = 'levels.html';
-});
-
-// Run on page load
-window.onload = () => {
-  updateLevelsButton();
-};
 </script>
 
 </body>
