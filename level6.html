@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Electromagnetic Spectrum Perfect Score Game</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    /* Physics-themed background with wave interference pattern */
+    background: linear-gradient(135deg, #e0f7fa, #ffe0b2),
+                repeating-conic-gradient(#90caf9 0deg 10deg, transparent 10deg 20deg);
+    background-size: 100px 100px, 50px 50px;
+    margin: 20px;
+    text-align: center;
+    color: #333;
+  }
+  h1 {
+    margin-bottom: 10px;
+    font-size: 2em;
+    color: #0277bd;
+  }
+  #question {
+    font-size: 1.2em;
+    margin: 15px 0;
+  }
+  .spectrum {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .wave {
+  width: 135px; 
+  height: 72px; 
+  margin: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #fff;
+  font-size: 1em;
+  padding: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+  .wave:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+  }
+  /* Colors for each wave */
+  .radio { background-color: #4B0082; }
+  .microwave { background-color: #FF7F50; }
+  .infrared { background-color: #FF4500; }
+  .visible { background-color: #FFFF00; color: #000; }
+  .ultraviolet { background-color: #8A2BE2; }
+  .xray { background-color: #00CED1; }
+  .gamma { background-color: #FF0000; }
+  #feedback {
+    font-size: 1.2em;
+    margin: 20px 0;
+  }
+  #scoreBoard {
+    font-size: 1.2em;
+    margin-top: 10px;
+  }
+  #message {
+    font-size: 1.4em;
+    color: green;
+    margin: 20px 0;
+  }
+  #nextLevelBtn, #restartBtn {
+    padding: 10px 20px;
+    margin-top: 15px;
+    font-size: 1em;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #0277bd;
+    color: white;
+    display: none; /* hidden by default */
+  }
+  #nextLevelBtn:hover, #restartBtn:hover {
+    background-color: #01579b;
+  }
+  /* Trivia box styling */
+  #trivia {
+    margin-top: 25px;
+    padding: 15px;
+    background-color: rgba(255,255,255,0.8);
+    border-radius: 8px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 1.2em;
+  }
+</style>
+</head>
+<body>
+<h1>Electromagnetic Spectrum Perfect Score Game</h1>
+<div id="question">Loading question...</div>
+
+<div class="spectrum" id="spectrum"></div>
+
+<div id="feedback"></div>
+<div id="scoreBoard">Score: 0 / 7</div>
+<div id="message"></div>
+<button id="nextLevelBtn" onclick="nextLevel()">Next Level</button>
+<button id="restartBtn" onclick="startGame()">Restart Game</button>
+
+<!-- Trivia section -->
+<div id="trivia" style="display:none;"></div>
+
+<script>
+const questionsPool = [
+  {
+    prompt: "Click on the wave used in medical imaging",
+    answer: "X-ray"
+  },
+  {
+    prompt: "Find the wave with the shortest wavelength",
+    answer: "Gamma"
+  },
+  {
+    prompt: "Select the wave used in night-vision devices",
+    answer: "Infrared"
+  },
+  {
+    prompt: "Click on the wave used in radio broadcasting",
+    answer: "Radio"
+  },
+  {
+    prompt: "Choose the wave used in sterilization and fluorescent lighting",
+    answer: "Ultraviolet"
+  },
+  {
+    prompt: "Identify the wave with the longest wavelength",
+    answer: "Radio"
+  },
+  {
+    prompt: "Find the wave used in microwave ovens",
+    answer: "Microwave"
+  }
+];
+
+const triviaFacts = [
+  "The electromagnetic spectrum includes all types of electromagnetic radiation, from radio waves to gamma rays.",
+  "Gamma rays have the shortest wavelength and the highest energy in the electromagnetic spectrum.",
+  "Infrared waves are used in remote controls and thermal imaging.",
+  "Ultraviolet light can cause sunburns and is used in sterilization.",
+  "X-rays can pass through the body to create images of bones and tissues.",
+  "Microwaves are used in communication satellites and microwave ovens.",
+  "Visible light is only a small part of the electromagnetic spectrum that human eyes can see."
+];
+
+let questions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+
+const questionDiv = document.getElementById('question');
+const feedbackDiv = document.getElementById('feedback');
+const scoreDiv = document.getElementById('scoreBoard');
+const messageDiv = document.getElementById('message');
+const spectrumDiv = document.getElementById('spectrum');
+const nextLevelBtn = document.getElementById('nextLevelBtn');
+const restartBtn = document.getElementById('restartBtn');
+const triviaDiv = document.getElementById('trivia');
+
+const allWaves = [
+  { name: 'Radio Waves', class: 'radio' },
+  { name: 'Microwave', class: 'microwave' },
+  { name: 'Infrared', class: 'infrared' },
+  { name: 'Visible light', class: 'visible' },
+  { name: 'Ultraviolet', class: 'ultraviolet' },
+  { name: 'X-ray', class: 'xray' },
+  { name: 'Gamma ray', class: 'gamma' }
+];
+
+function shuffle(array) {
+  for (let i = array.length -1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+// Initialize game
+function startGame() {
+  questionDiv.innerText = '';
+  feedbackDiv.innerText = '';
+  messageDiv.innerText = '';
+  triviaDiv.style.display = 'none';
+  triviaDiv.innerHTML = '';
+  score = 0;
+  currentQuestionIndex = 0;
+  scoreDiv.innerText = `Score: 0 / 7`;
+  nextLevelBtn.style.display = 'none';
+  restartBtn.style.display = 'none';
+  questionDiv.style.display = 'block';
+
+  // Select 7 questions randomly
+  questions = [...questionsPool];
+  shuffle(questions);
+  questions = questions.slice(0,7);
+  shuffle(allWaves);
+  renderWaves();
+  loadQuestion();
+}
+
+// Render the wave options
+function renderWaves() {
+  spectrumDiv.innerHTML = '';
+  allWaves.forEach(wave => {
+    const div = document.createElement('div');
+    div.className = `wave ${wave.class}`;
+    div.innerText = wave.name;
+    div.onclick = () => checkAnswer(wave.name);
+    spectrumDiv.appendChild(div);
+  });
+}
+
+// Load current question
+function loadQuestion() {
+  if (currentQuestionIndex >= questions.length) {
+    // Player answered all questions correctly
+    questionDiv.style.display = 'none';
+    feedbackDiv.innerText = '';
+    messageDiv.innerText = 'Congratulations! You answered all questions correctly!';
+    showTrivia();
+    nextLevelBtn.style.display = 'inline-block';
+    restartBtn.style.display = 'inline-block';
+    return;
+  }
+  const q = questions[currentQuestionIndex];
+  questionDiv.innerText = q.prompt;
+  feedbackDiv.innerText = '';
+}
+
+// Check answer
+function checkAnswer(selectedWave) {
+  const correctWave = questions[currentQuestionIndex].answer;
+  if (selectedWave === correctWave) {
+    feedbackDiv.innerText = 'Correct! 😊';
+    score++;
+    currentQuestionIndex++;
+    updateScore();
+    setTimeout(loadQuestion, 1000);
+  } else {
+    feedbackDiv.innerText = `Wrong! The correct answer was ${correctWave}.`;
+    messageDiv.innerText = 'Game Over! You did not achieve a perfect score. Try again!';
+    restartBtn.style.display = 'inline-block';
+  }
+}
+
+function updateScore() {
+  scoreDiv.innerText = `Score: ${score} / 7`;
+}
+
+function showTrivia() {
+  // Pick a random trivia fact
+  const fact = triviaFacts[Math.floor(Math.random() * triviaFacts.length)];
+  triviaDiv.innerHTML = `<strong>Did you know?</strong> ${fact}`;
+  triviaDiv.style.display = 'block';
+}
+
+function nextLevel() {
+  // For demonstration, just restart the game for next level
+  // You can customize to load new questions or increase difficulty
+  startGame();
+}
+
+// Start the game initially
+startGame();
+</script>
+</body>
+</html>
