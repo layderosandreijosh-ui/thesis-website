@@ -347,11 +347,11 @@ document.getElementById('nextLevelBtn').addEventListener('click', () => {
 
 // Update levels button on load
 function updateLevelsButton() {
-  const btn = document.getElementById('levelsBtn');
+  const btn = document.getElementById('NextlevelsBtn');
   if (localStorage.getItem('level4Completed') === 'true') {
-  
-  
-   
+    btn.style.display = 'inline-block';
+    btn.innerText = 'Next Level';
+    btn.style.background = 'linear-gradient(135deg, #4CAF50, #81C784)';
     btn.disabled = true;
   } else {
     btn.style.display = 'none';
