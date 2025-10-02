@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>EMR Explorer</title>
+<title>Level 5: Make it Flap!</title>
 <style>
   body {
     margin: 0;
@@ -19,13 +19,13 @@
   }
   #info {
     text-align: center;
-    padding: 10px;
+    padding: 40px;
   }
   #score {
     font-size: 1.2em;
   }
   #message {
-    font-size: 1.2em;
+    font-size: 2em;
     margin-top: 10px;
   }
   button {
@@ -39,9 +39,10 @@
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
-    background: rgba(255,255,255,0.1);
-    padding: 10px;
+    background: rgba(12, 211, 78, 0.644);
+    padding: 20px;
     border-radius: 8px;
+    font-size: 2em;
   }
 </style>
 </head>
@@ -114,15 +115,15 @@ const targetScore = 2;
 const player = {
   x: 50,
   y: 250,
-  radius: 15,
+  radius: 20,
   vy: 0,
-  gravity: 0.2,
-  lift: -5
+  gravity: 0.5,
+  lift: -8
 };
 
 // Items & hazards
 const items = [];
-const itemSize = 30;
+const itemSize = 50;
 let frameCount = 0;
 
 // Trivia facts
@@ -270,7 +271,7 @@ function init() {
 
     // Move items
     items.forEach(item => {
-      item.x -= 3;
+      item.x -= 8;
     });
     while (items.length > 0 && items[0].x + itemSize < 0) {
       items.shift();
@@ -308,8 +309,8 @@ function init() {
     drawPlayer();
     drawItems();
     ctx.fillStyle = '#fff';
-    ctx.font = '16px Arial';
-    ctx.fillText('Avoid hazards. Collect beneficial sources.', 10, 20);
+    ctx.font = '26px Times New Roman';
+    ctx.fillText('Avoid the HAZARDS and collect BENEFICIAL sources.', 10, 20);
     ctx.fillText('Score: ' + score, 700, 20);
   }
 
