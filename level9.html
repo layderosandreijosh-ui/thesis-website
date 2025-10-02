@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Word Search - Level 9</title>
+<style>
+  /* Reset and basic styles */
+  body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    overflow: hidden;
+    background: #222;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #particlesCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+  }
+  .content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 20px;
+    color: #fff;
+  }
+  h1 {
+    margin-bottom: 10px;
+  }
+  #words {
+    margin-top: 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background: rgba(255,255,255,0.1);
+    padding: 10px 20px;
+    border-radius: 8px;
+  }
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(10, 40px);
+    grid-gap: 8px;
+    justify-content: center;
+    margin: 20px auto;
+  }
+  .cell {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    user-select: none;
+    transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
+  }
+  .cell:hover {
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    transform: scale(1.05);
+  }
+  .selected {
+    background-color: #ffd700;
+    box-shadow: 0 0 15px #ffd700;
+    transform: scale(1.05);
+  }
+  .found {
+    background-color: #ffd700 !important;
+    box-shadow: 0 0 15px #ffd700 !important;
+    transform: scale(1.05) !important;
+  }
+  #message {
+    margin-top: 15px;
+    font-size: 1.1em;
+    font-weight: bold;
+  }
+  #nextLevelBtn {
+    display: none;
+    margin-top: 20px;
+    padding: 12px 24px;
+    font-size: 1.2em;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  #nextLevelBtn:hover {
+    background-color: #45a049;
+  }
+  #popupOverlay {
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    justify-content: center; 
+    align-items: center; 
+    z-index: 1000;
+  }
+  #popup {
+    background: #fff; 
+    color: #000; 
+    padding: 20px; 
+    border-radius: 10px; 
+    max-width: 600px; 
+    width: 80%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  #popup h2 {
+    margin-top: 0;
+  }
+  #closePopup {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #007BFF;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #closePopup:hover {
+    background: #0069d9;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particlesCanvas"></canvas>
+
+<div class="content">
+<h1>Word Search Puzzle - Level 9</h1>
+<div id="words">Find these words: WAVES, RADIATION, BIOLOGICAL, LIGHT, INDICATORS</div>
+<div id="grid"></div>
+<div id="message"></div>
+<button id="nextLevelBtn">Next Level</button>
+</div>
+
+<div id="popupOverlay">
+  <div id="popup">
+    <h2>Trivia</h2>
+    <p id="triviaText"></p>
+    <button id="closePopup">Close</button>
+  </div>
+</div>
+
+<audio id="foundSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
+
+<script>
+// Particles background
+const canvas = document.getElementById('particlesCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const particlesArray = [];
+function initParticles() {
+  for (let i=0; i<80; i++) {
+    particlesArray.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      size: Math.random() * 3 + 1,
+      speedX: (Math.random() - 0.5) * 0.5,
+      speedY: (Math.random() - 0.5) * 0.5
+    });
+  }
+}
+initParticles();
+
+function animateParticles() {
+  ctx.fillStyle = 'rgba(34, 34, 34, 0.2)';
+  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+  for (let p of particlesArray) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fill();
+    p.x += p.speedX;
+    p.y += p.speedY;
+    if (p.x < 0 || p.x > window.innerWidth) p.speedX *= -1;
+    if (p.y < 0 || p.y > window.innerHeight) p.speedY *= -1;
+  }
+  // draw lines
+  for (let i=0; i<particlesArray.length; i++) {
+    for (let j=i+1; j<particlesArray.length; j++) {
+      const p1 = particlesArray[i];
+      const p2 = particlesArray[j];
+      const dx = p1.x - p2.x;
+      const dy = p1.y - p2.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 100) {
+        ctx.strokeStyle = `rgba(255,255,255,${1 - dist/100})`;
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(p1.x,p1.y);
+        ctx.lineTo(p2.x,p2.y);
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// Word Search Game
+const size = 10;
+const words = ["WAVES", "RADIATION", "BIOLOGICAL", "LIGHT", "INDICATORS"];
+
+let grid = Array.from({length: size}, () => Array(size).fill(''));
+const wordPositions = {};
+const gridContainer = document.getElementById('grid');
+const messageDiv = document.getElementById('message');
+const nextBtn = document.getElementById('nextLevelBtn');
+const popupOverlay = document.getElementById('popupOverlay');
+
+const foundSound = document.getElementById('foundSound');
+
+let selectedCells = [];
+let isSelecting = false;
+let foundWords = [];
+
+function generateEmptyGrid() {
+  for (let i=0; i<size; i++) {
+    for (let j=0; j<size; j++) {
+      grid[i][j] = '';
+    }
+  }
+}
+
+function canPlaceWord(word, row, col, dir) {
+  if (dir === 'H') {
+    if (col + word.length > size) return false;
+    for (let i=0; i<word.length; i++) {
+      const r = row;
+      const c = col + i;
+      const letter = grid[r][c];
+      if (letter && letter !== word[i]) return false;
+    }
+  } else if (dir === 'V') {
+    if (row + word.length > size) return false;
+    for (let i=0; i<word.length; i++) {
+      const r = row + i;
+      const c = col;
+      const letter = grid[r][c];
+      if (letter && letter !== word[i]) return false;
+    }
+  } else if (dir === 'D') {
+    if (row + word.length > size || col + word.length > size) return false;
+    for (let i=0; i<word.length; i++) {
+      const r = row + i;
+      const c = col + i;
+      const letter = grid[r][c];
+      if (letter && letter !== word[i]) return false;
+    }
+  }
+  return true;
+}
+
+function placeWord(word) {
+  let placed = false;
+  let attempts = 0;
+  while (!placed && attempts < 1000) {
+    attempts++;
+    const dirOptions = ['H', 'V', 'D'];
+    const dir = dirOptions[Math.floor(Math.random() * dirOptions.length)];
+    const maxRow = (dir === 'V' || dir === 'D') ? size - word.length : size -1;
+    const maxCol = (dir === 'H' || dir === 'D') ? size - word.length : size -1;
+    const row = Math.floor(Math.random() * (maxRow +1));
+    const col = Math.floor(Math.random() * (maxCol +1));
+    if (canPlaceWord(word, row, col, dir)) {
+      // place the word
+      wordPositions[word] = [];
+      for (let i=0; i<word.length; i++) {
+        let r = row;
+        let c = col;
+        if (dir === 'H') c+=i;
+        else if (dir==='V') r+=i;
+        else if (dir==='D') { r+=i; c+=i; }
+        grid[r][c] = word[i];
+        wordPositions[word].push({row:r, col:c});
+      }
+      placed=true;
+    }
+  }
+}
+
+function fillEmptyCells() {
+  for (let i=0; i<size; i++) {
+    for (let j=0; j<size; j++) {
+      if (!grid[i][j]) {
+        grid[i][j] = String.fromCharCode(65 + Math.floor(Math.random()*26));
+      }
+    }
+  }
+}
+
+function createGrid() {
+  generateEmptyGrid();
+  for (const word of words) {
+    placeWord(word);
+  }
+  fillEmptyCells();
+
+  // Render grid
+  gridContainer.innerHTML = '';
+  for (let i=0; i<size; i++) {
+    for (let j=0; j<size; j++) {
+      const cell = document.createElement('div');
+      cell.className='cell';
+      cell.dataset.row=i;
+      cell.dataset.col=j;
+      cell.textContent=grid[i][j];
+      cell.addEventListener('mousedown', startSelection);
+      cell.addEventListener('mouseover', extendSelection);
+      cell.addEventListener('mouseup', endSelection);
+      gridContainer.appendChild(cell);
+    }
+  }
+  // reset state
+  document.querySelectorAll('.cell').forEach(c => c.classList.remove('found', 'selected'));
+  foundWords = [];
+  messageDiv.textContent = '';
+  nextBtn.style.display='none';
+}
+
+function startSelection(e) {
+  clearSelection();
+  isSelecting=true;
+  selectCell(e.target);
+}
+function extendSelection(e) {
+  if (isSelecting) {
+    selectCell(e.target);
+  }
+}
+function endSelection() {
+  if (isSelecting) {
+    isSelecting=false;
+    checkWord();
+  }
+}
+function selectCell(c) {
+  if (!c.classList.contains('selected')) {
+    c.classList.add('selected');
+    selectedCells.push(c);
+  }
+}
+function clearSelection() {
+  document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+  selectedCells=[];
+  messageDiv.textContent='';
+}
+function getSelectedWord() {
+  return selectedCells.map(c => c.textContent).join('');
+}
+function checkWord() {
+  const word = getSelectedWord().toUpperCase();
+  const revWord = word.split('').reverse().join('');
+  let foundWord = null;
+  if (words.includes(word) && !foundWords.includes(word)) {
+    foundWord=word;
+  } else if (words.includes(revWord) && !foundWords.includes(revWord)) {
+    foundWord=revWord;
+  }
+  if (foundWord) {
+    foundWords.push(foundWord);
+    // highlight all cells of the word
+    for (const c of gridContainer.children) {
+      const r = parseInt(c.dataset.row);
+      const co = parseInt(c.dataset.col);
+      if (wordPositions[foundWord].some(pos => pos.row===r && pos.col===co)) {
+        c.classList.add('found');
+      }
+    }
+    playSound();
+    messageDiv.textContent = `Found: ${foundWord}!`;
+    if (foundWords.length===words.length) {
+      showTrivia();
+      nextBtn.style.display='inline-block';
+    }
+  } else {
+    messageDiv.textContent='Try again!';
+  }
+}
+function playSound() {
+  if (foundSound) {
+    foundSound.currentTime=0;
+    foundSound.play();
+  }
+}
+function showTrivia() {
+  document.getElementById('triviaText').innerHTML=`
+- Waves include a range of phenomena like radio waves, visible light, X-rays, and more.<br>
+- Radiation can be natural or man-made, affecting health and environment.<br>
+- Biological impacts of radiation can include DNA damage.<br>
+- Effects refer to the consequences of environmental exposure.<br>
+- The environment includes all living and non-living things around us.<br>
+- Indicators are measurable signs of environmental health.
+`;
+  document.getElementById('popupOverlay').style.display='flex';
+}
+document.getElementById('closePopup').onclick=()=> {
+  document.getElementById('popupOverlay').style.display='none';
+}
+document.getElementById('nextLevelBtn').onclick=()=> {
+  window.location.href='level10.html';
+}
+
+// Initialize the game
+createGrid();
+</script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simple Tetris Game</title>
+<style>
+  body {
+    background: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  #tetris-container {
+    display: grid;
+    grid-template-rows: repeat(20, 30px);
+    grid-template-columns: repeat(10, 30px);
+    gap: 2px;
+    background: #111;
+    padding: 10px;
+    border: 2px solid #555;
+  }
+  .cell {
+    width: 30px;
+    height: 30px;
+    background: #222;
+  }
+  .filled {
+    background: #f00;
+  }
+</style>
+</head>
+<body>
+
+<div id="tetris-container"></div>
+
+<script>
+const rows = 20;
+const cols = 10;
+const container = document.getElementById('tetris-container');
+
+let grid = [];
+for (let r = 0; r < rows; r++) {
+  for (let c = 0; c < cols; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    container.appendChild(cell);
+    grid.push(cell);
+  }
+}
+
+let currentPiece = null;
+let currentPosition = 0;
+
+// Define simple tetromino shapes
+const shapes = [
+  { shape: [[1, 1, 1, 1]], color: 'cyan' }, // I
+  { shape: [[1, 1], [1, 1]], color: 'yellow' }, // O
+  { shape: [[0,1,0],[1,1,1]], color: 'purple' }, // T
+  { shape: [[1,0,0],[1,1,1]], color: 'blue' }, // J
+  { shape: [[0,0,1],[1,1,1]], color: 'orange' }, // L
+  { shape: [[1,1,0],[0,1,1]], color: 'green' }, // S
+  { shape: [[0,1,1],[1,1,0]], color: 'red' }, // Z
+];
+
+function getRandomShape() {
+  return shapes[Math.floor(Math.random() * shapes.length)];
+}
+
+let currentShape = null;
+let currentRotation = 0;
+let currentX = 3;
+let currentY = 0;
+
+function drawShape() {
+  if (!currentShape) return;
+  currentShape.shape.forEach((row, rIdx) => {
+    row.forEach((cell, cIdx) => {
+      if (cell) {
+        const index = (currentY + rIdx) * cols + (currentX + cIdx);
+        if (grid[index]) {
+          grid[index].style.background = currentShape.color;
+        }
+      }
+    });
+  });
+}
+
+function undrawShape() {
+  if (!currentShape) return;
+  currentShape.shape.forEach((row, rIdx) => {
+    row.forEach((cell, cIdx) => {
+      if (cell) {
+        const index = (currentY + rIdx) * cols + (currentX + cIdx);
+        if (grid[index]) {
+          grid[index].style.background = '#222';
+        }
+      }
+    });
+  });
+}
+
+function moveDown() {
+  undrawShape();
+  currentY++;
+  if (collision()) {
+    currentY--;
+    lockShape();
+    clearLines();
+    spawnShape();
+  }
+  drawShape();
+}
+
+function collision() {
+  for (let r = 0; r < currentShape.shape.length; r++) {
+    for (let c = 0; c < currentShape.shape[r].length; c++) {
+      if (currentShape.shape[r][c]) {
+        const newY = currentY + r;
+        const newX = currentX + c;
+        if (newY >= rows || newX < 0 || newX >= cols) {
+          return true;
+        }
+        const index = newY * cols + newX;
+        if (grid[index].className.includes('filled')) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function lockShape() {
+  for (let r = 0; r < currentShape.shape.length; r++) {
+    for (let c = 0; c < currentShape.shape[r].length; c++) {
+      if (currentShape.shape[r][c]) {
+        const index = (currentY + r) * cols + (currentX + c);
+        grid[index].className = 'cell filled';
+        grid[index].style.background = currentShape.color;
+      }
+    }
+  }
+}
+
+function clearLines() {
+  for (let r = rows - 1; r >= 0; r--) {
+    let fullLine = true;
+    for (let c = 0; c < cols; c++) {
+      const index = r * cols + c;
+      if (!grid[index].className.includes('filled')) {
+        fullLine = false;
+        break;
+      }
+    }
+    if (fullLine) {
+      // Remove line
+      for (let c = 0; c < cols; c++) {
+        const index = r * cols + c;
+        grid[index].className = 'cell';
+        grid[index].style.background = '#222';
+      }
+      // Drop above lines
+      for (let aboveR = r - 1; aboveR >= 0; aboveR--) {
+        for (let c = 0; c < cols; c++) {
+          const fromIndex = aboveR * cols + c;
+          const toIndex = (aboveR + 1) * cols + c;
+          grid[toIndex].className = grid[fromIndex].className;
+          grid[toIndex].style.background = grid[fromIndex].style.background;
+        }
+      }
+      r++;
+    }
+  }
+}
+
+function spawnShape() {
+  currentShape = getRandomShape();
+  currentX = 3;
+  currentY = 0;
+  if (collision()) {
+    alert('Game Over');
+    clearInterval(gameInterval);
+  }
+}
+
+function rotate() {
+  undrawShape();
+  const oldShape = currentShape.shape;
+  currentShape.shape = currentShape.shape[0].map((_, index) => currentShape.shape.map(row => row[index])).reverse();
+  if (collision()) {
+    currentShape.shape = oldShape;
+  }
+  drawShape();
+}
+
+document.addEventListener('keydown', (e) => {
+  undrawShape();
+  if (e.key === 'ArrowLeft') {
+    currentX--;
+    if (collision()) currentX++;
+  } else if (e.key === 'ArrowRight') {
+    currentX++;
+    if (collision()) currentX--;
+  } else if (e.key === 'ArrowDown') {
+    moveDown();
+  } else if (e.key === 'ArrowUp') {
+    rotate();
+  }
+  drawShape();
+});
+
+spawnShape();
+drawShape();
+
+const gameInterval = setInterval(moveDown, 500);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shooting Game with Levels & Trivia</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #222;
+    font-family: sans-serif;
+  }
+  #gameCanvas {
+    display: block;
+    margin: 0 auto;
+    background: #111;
+  }
+  #controls {
+    position: fixed;
+    bottom: 60px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    background: #555;
+    color: white;
+    cursor: pointer;
+    opacity: 0.8;
+  }
+  button:active {
+    opacity: 1;
+    background: #777;
+  }
+  #scoreBoard {
+    position: fixed;
+    top: 10px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 20px;
+  }
+  #messageOverlay {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    padding: 20px;
+    z-index: 10;
+  }
+  #messageOverlay h2 {
+    margin-bottom: 10px;
+  }
+  #messageOverlay p {
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div id="scoreBoard">Score: 0 | Target: 30</div>
+<div id="timer" style="position: fixed; top: 10px; right: 20px; color: white; font-size: 24px; z-index: 10;">30</div>
+
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+
+<div id="controls">
+  <button id="leftBtn">Left</button>
+  <button id="shootBtn">Shoot</button>
+  <button id="rightBtn">Right</button>
+</div>
+
+<div id="messageOverlay">
+  <div id="messageContent"></div>
+  <button id="nextLevelBtn" style="display:none;">Next Level</button>
+  <button id="tryAgainBtn" style="display:none;">Try Again</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const scoreBoard = document.getElementById('scoreBoard');
+const overlay = document.getElementById('messageOverlay');
+const messageContent = document.getElementById('messageContent');
+const nextLevelBtn = document.getElementById('nextLevelBtn');
+const tryAgainBtn = document.getElementById('tryAgainBtn');
+
+const targetScore = 30; // Fixed target score
+let currentScore = 0;
+const levelTime = 30; // seconds
+let timeLeft = levelTime;
+let gameInterval; 
+let timerInterval; 
+
+// Load images
+const images = {
+  shooter: new Image(),
+  wave: new Image(),
+  bullet: new Image()
+};
+images.shooter.src = 'https://i.imgur.com/aP1s9Xm.png';
+images.wave.src = 'https://i.imgur.com/NGlXhoM.png';
+images.bullet.src = 'https://i.imgur.com/2pq0jyS.png';
+
+let imagesLoaded = 0;
+const totalImages = Object.keys(images).length;
+
+// Particles background
+const particles = [];
+const maxParticles = 50;
+function createParticle() {
+  return {
+    x: Math.random() * 600,
+    y: Math.random() * 400,
+    size: Math.random() * 3 + 1,
+    speedX: (Math.random() - 0.5) * 0.5,
+    speedY: (Math.random() - 0.5) * 0.5,
+    alpha: Math.random(),
+  };
+}
+for (let i=0; i<maxParticles; i++) particles.push(createParticle());
+
+for (let key in images) {
+  images[key].onload = () => {
+    imagesLoaded++;
+    if (imagesLoaded === totalImages) startGame();
+  };
+}
+
+function startGame() {
+  const scaleFactor = 1.4; // Player size +40%
+  const originalShooterWidth = 48;
+  const originalShooterHeight = 24;
+  const originalBulletWidth = 10;
+  const originalBulletHeight = 20;
+
+  const shooterWidth = originalShooterWidth * scaleFactor;
+  const shooterHeight = originalShooterHeight * scaleFactor;
+  const bulletWidth = originalBulletWidth * 1.3; // 30% bigger
+  const bulletHeight = originalBulletHeight * 1.3;
+
+  const player = {
+    x: (600 - shooterWidth) / 2,
+    y: 400 - shooterHeight - 10,
+    width: shooterWidth,
+    height: shooterHeight,
+    speed: 5,
+    image: images.shooter
+  };
+
+  const bullets = [];
+  const enemies = [];
+  const maxEnemies = 5;
+
+  let moveLeft = false;
+  let moveRight = false;
+  let shootFlag = false;
+
+  // Controls
+  document.getElementById('leftBtn').addEventListener('mousedown', () => { moveLeft = true; });
+  document.getElementById('leftBtn').addEventListener('mouseup', () => { moveLeft = false; });
+  document.getElementById('leftBtn').addEventListener('touchstart', () => { moveLeft = true; });
+  document.getElementById('leftBtn').addEventListener('touchend', () => { moveLeft = false; });
+
+  document.getElementById('rightBtn').addEventListener('mousedown', () => { moveRight = true; });
+  document.getElementById('rightBtn').addEventListener('mouseup', () => { moveRight = false; });
+  document.getElementById('rightBtn').addEventListener('touchstart', () => { moveRight = true; });
+  document.getElementById('rightBtn').addEventListener('touchend', () => { moveRight = false; });
+
+  document.getElementById('shootBtn').addEventListener('mousedown', () => { shootFlag = true; });
+  document.getElementById('shootBtn').addEventListener('mouseup', () => { shootFlag = false; });
+  document.getElementById('shootBtn').addEventListener('touchstart', () => { shootFlag = true; });
+  document.getElementById('shootBtn').addEventListener('touchend', () => { shootFlag = false; });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') moveRight = true;
+    if (e.key === 'ArrowLeft') moveLeft = true;
+    if (e.key === ' ') shootFlag = true;
+  });
+  document.addEventListener('keyup', e => {
+    if (e.key === 'ArrowRight') moveRight = false;
+    if (e.key === 'ArrowLeft') moveLeft = false;
+    if (e.key === ' ') shootFlag = false;
+  });
+
+  for (let i=0; i<maxEnemies; i++) spawnEnemy();
+
+  function spawnEnemy() {
+    const enemy = {
+      x: Math.random() * (600 - 30),
+      y: Math.random() * 100,
+      width: 30,
+      height: 30,
+      speedX: (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 2),
+    };
+    enemies.push(enemy);
+  }
+
+  function update() {
+    if (moveLeft) player.x -= player.speed;
+    if (moveRight) player.x += player.speed;
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.width > 600) player.x = 600 - player.width;
+
+    if (shootFlag && bullets.length < 3) {
+      bullets.push({
+        x: player.x + player.width/2 - bulletWidth/2,
+        y: player.y,
+        width: bulletWidth,
+        height: bulletHeight,
+        speed: 7,
+        image: images.bullet
+      });
+      shootFlag = false;
+    }
+
+    for (let i=bullets.length-1; i>=0; i--) {
+      bullets[i].y -= bullets[i].speed;
+      if (bullets[i].y + bullets[i].height < 0) bullets.splice(i,1);
+    }
+
+    for (let e of enemies) {
+      e.x += e.speedX;
+      if (e.x < 0 || e.x + e.width > 600) e.speedX *= -1;
+    }
+
+    for (let i=enemies.length-1; i>=0; i--) {
+      const enemy = enemies[i];
+      for (let j=bullets.length-1; j>=0; j--) {
+        const bullet = bullets[j];
+        if (isColliding(bullet, enemy)) {
+          enemies.splice(i,1);
+          bullets.splice(j,1);
+          currentScore++;
+          updateScore();
+          spawnEnemy();
+          checkLevelProgress();
+          break;
+        }
+      }
+    }
+  }
+
+  function isColliding(a, b) {
+    return (
+      a.x < b.x + b.width &&
+      a.x + a.width > b.x &&
+      a.y < b.y + b.height &&
+      a.y + a.height > b.y
+    );
+  }
+
+  function updateScore() {
+    scoreBoard.innerHTML = `Score: ${currentScore} | Target: ${targetScore}`;
+  }
+
+  function checkLevelProgress() {
+    if (currentScore >= targetScore) {
+      clearInterval(timerInterval);
+      showLevelComplete();
+    }
+  }
+
+  function showLevelComplete() {
+    overlay.style.display = 'flex';
+    messageContent.innerHTML = `
+      <h2>Level Cleared!</h2>
+      <p>Here's a trivia about EM waves:</p>
+      <p><em>EM waves are transverse waves that can travel through the vacuum of space.</em></p>
+    `;
+    nextLevelBtn.style.display = 'inline-block';
+    document.getElementById('nextLevelBtn').onclick = () => {
+      window.location.href = 'level8.html';
+    };
+    document.getElementById('tryAgainBtn').style.display = 'none';
+  }
+
+  function showGameOver() {
+    overlay.style.display = 'flex';
+    messageContent.innerHTML = `
+      <h2>Game Over</h2>
+      <p>You didn't reach the target score in time.</p>
+    `;
+    tryAgainBtn.style.display = 'inline-block';
+    document.getElementById('tryAgainBtn').onclick = () => {
+      window.location.reload();
+    };
+    document.getElementById('nextLevelBtn').style.display = 'none';
+  }
+
+  // Timer
+  function startTimer() {
+    const timerDisplay = document.getElementById('timer');
+    timerDisplay.innerHTML = timeLeft;
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timerDisplay.innerHTML = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        if (currentScore >= targetScore) {
+          showLevelComplete();
+        } else {
+          showGameOver();
+        }
+      }
+    }, 1000);
+  }
+
+  startTimer();
+
+  (function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  })();
+
+  function draw() {
+    ctx.clearRect(0, 0, 600, 400);
+
+    // Draw particles background
+    for (let p of particles) {
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      p.x += p.speedX;
+      p.y += p.speedY;
+      if (p.x < 0) p.x = 600;
+      if (p.x > 600) p.x = 0;
+      if (p.y < 0) p.y = 400;
+      if (p.y > 400) p.y = 0;
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.drawImage(player.image, player.x, player.y, player.width, player.height);
+
+    for (let b of bullets) {
+      if (b.image) {
+        ctx.drawImage(b.image, b.x, b.y, b.width, b.height);
+      } else {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(b.x, b.y, b.width, b.height);
+      }
+    }
+    for (let e of enemies) {
+      ctx.drawImage(images.wave, e.x, e.y, e.width, e.height);
+    }
+  }
+}
+</script>
+</body>
+</html>
